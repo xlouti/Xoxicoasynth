@@ -61,15 +61,14 @@ target_link_libraries(XoxicoaSynth
 
 if(APPLE)
     target_link_libraries(XoxicoaSynth PUBLIC juce::juce_recommended_lto_flags)
-    # JUCE calls macOS 11 os_workgroup_* inside @available. With the 15 SDK those
-    # imports are strong unless the link marks them undefined-ok, and Catalina's
-    # dyld then refuses the x86_64 slice. -U makes each one a weak import.
+    # The 15 SDK records macOS 11 os_workgroup imports as strong. ld -U does not
+    # weaken a symbol the SDK provides, so mark the nlist entries weak after link.
     foreach(xs_fmt AU VST3 Standalone)
         if(TARGET XoxicoaSynth_${xs_fmt})
-            target_link_options(XoxicoaSynth_${xs_fmt} PRIVATE
-                "LINKER:-U,_os_workgroup_join"
-                "LINKER:-U,_os_workgroup_leave"
-                "LINKER:-U,_os_workgroup_max_parallel_threads")
+            add_custom_command(TARGET XoxicoaSynth_${xs_fmt} POST_BUILD
+                COMMAND /usr/bin/python3 "${CMAKE_SOURCE_DIR}/cmake/weak_os_workgroup.py"
+                        "$<TARGET_FILE:XoxicoaSynth_${xs_fmt}>"
+                VERBATIM)
         endif()
     endforeach()
 endif()

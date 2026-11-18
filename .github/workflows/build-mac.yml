@@ -51,8 +51,9 @@ jobs:
           ditto "$ROOT/VST3/Xoxicoa Synth.vst3" "package/Xoxicoa Synth.vst3"
           ditto "$ROOT/Standalone/Xoxicoa Synth.app" "package/Xoxicoa Synth.app"
           for b in "package/Xoxicoa Synth.component" "package/Xoxicoa Synth.vst3" "package/Xoxicoa Synth.app"; do
-            codesign --force --deep --sign - "$b"
             bin="$b/Contents/MacOS/Xoxicoa Synth"
+            python3 cmake/weak_os_workgroup.py "$bin"
+            codesign --force --deep --sign - "$b"
             # Xcode 16 lipo: the binary path must come BEFORE -verify_arch
             lipo "$bin" -verify_arch arm64 x86_64
             lipo -info "$bin"

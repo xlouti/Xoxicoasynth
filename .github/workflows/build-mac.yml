@@ -16,6 +16,9 @@ jobs:
     # Intel runner (arm64 hosted runners were unavailable); still builds a universal binary.
     runs-on: macos-15-intel
     timeout-minutes: 45
+    env:
+      # Do not pass -DCMAKE_OSX_DEPLOYMENT_TARGET; CMakeLists.txt is the source of truth.
+      MACOSX_DEPLOYMENT_TARGET: "10.15"
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode 16.4
@@ -23,10 +26,19 @@ jobs:
           if [ -d /Applications/Xcode_16.4.app ]; then sudo xcode-select -s /Applications/Xcode_16.4.app; fi
           xcodebuild -version
       - name: Configure (universal arm64 + x86_64)
-        run: >-
-          cmake -S . -B build-mac -G Xcode
-          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
-          -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+        run: |
+          set -euo pipefail
+          echo "MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}"
+          cmake -S . -B build-mac -G Xcode \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          echo "---- CMake cache ----"
+          grep -E '^CMAKE_OSX_DEPLOYMENT_TARGET' build-mac/CMakeCache.txt
+          echo "---- Xcode project ----"
+          grep -h MACOSX_DEPLOYMENT_TARGET build-mac/*.xcodeproj/project.pbxproj | sort | uniq -c
+          if ! grep -h MACOSX_DEPLOYMENT_TARGET build-mac/*.xcodeproj/project.pbxproj | grep -q '10.15'; then
+            echo "Xcode project does not set MACOSX_DEPLOYMENT_TARGET to 10.15"
+            exit 1
+          fi
       - name: Build AU, VST3 and Standalone
         run: cmake --build build-mac --config Release --parallel 3
       - name: Sign ad-hoc, verify architectures, package
@@ -40,9 +52,27 @@ jobs:
           ditto "$ROOT/Standalone/Xoxicoa Synth.app" "package/Xoxicoa Synth.app"
           for b in "package/Xoxicoa Synth.component" "package/Xoxicoa Synth.vst3" "package/Xoxicoa Synth.app"; do
             codesign --force --deep --sign - "$b"
+            bin="$b/Contents/MacOS/Xoxicoa Synth"
             # Xcode 16 lipo: the binary path must come BEFORE -verify_arch
-            lipo "$b/Contents/MacOS/Xoxicoa Synth" -verify_arch arm64 x86_64
-            lipo -info "$b/Contents/MacOS/Xoxicoa Synth"
+            lipo "$bin" -verify_arch arm64 x86_64
+            lipo -info "$bin"
+            minos_for() {
+              otool -l -arch "$1" "$2" | awk '
+                $1=="cmd" && ($2=="LC_BUILD_VERSION" || $2=="LC_VERSION_MIN_MACOSX") {show=1; next}
+                show && $1=="minos" {print $2; exit}
+                show && $1=="version" {print $2; exit}
+              '
+            }
+            x86_minos="$(minos_for x86_64 "$bin")"
+            arm_minos="$(minos_for arm64 "$bin")"
+            echo "minos x86_64=${x86_minos} arm64=${arm_minos} ($b)"
+            plist="$b/Contents/Info.plist"
+            plist_min="$(plutil -extract LSMinimumSystemVersion raw "$plist")"
+            echo "LSMinimumSystemVersion=${plist_min} ($plist)"
+            if [ "$x86_minos" != "10.15" ] || [ "$plist_min" != "10.15" ]; then
+              echo "expected x86_64 minos and LSMinimumSystemVersion 10.15"
+              exit 1
+            fi
           done
           cp README.md package/
           ditto -c -k --sequesterRsrc --keepParent package XoxicoaSynth_mac_universal.zip

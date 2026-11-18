@@ -5,10 +5,11 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
     if(NOT DEFINED CMAKE_OSX_ARCHITECTURES)
         set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Mac architectures")
     endif()
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
+    # 10.15 so the Intel slice loads on Catalina. The arm64 slice is raised to 11.0 by the linker.
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum macOS version" FORCE)
 endif()
 
-project(XoxicoaSynth VERSION 1.0.0 LANGUAGES C CXX)
+project(XoxicoaSynth VERSION 1.0.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

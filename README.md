@@ -41,7 +41,7 @@ files in `~/Music/Xoxicoa Synth/Presets`. Click the preset name to browse by cat
 - Hovering shows the value.
 
 ## Build
-- **Mac (CI)**: run the GitHub workflow `.github/workflows/build-mac.yml`, which uses `macos-15-intel` and Xcode 16.4 to produce a universal binary.
+- **Mac (CI)**: run the GitHub workflow `.github/workflows/build-mac.yml`, which uses `macos-15-intel` and Xcode 16.4 to produce a universal binary with a macOS 10.15 deployment target (Catalina).
 - **Local**: `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release`
 - **Tests**: configure with `-DXS_BUILD_TESTS=ON`, then run:
   - `XoxicoaSynthAudit audit|safety|demos|calibrate <path>`

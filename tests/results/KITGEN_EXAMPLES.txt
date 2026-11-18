@@ -23,15 +23,15 @@ Kick
    variety between rolls: 17.7 dB mean spectral distance
 
 Snare     
-   roll 0: 0.16 s, peak(pre-norm) -1.3 dBFS, rms -20.9 dB, samples >= 0 dBFS: 0, note C3
-   roll 1: 0.19 s, peak(pre-norm) -1.3 dBFS, rms -18.3 dB, samples >= 0 dBFS: 0, note C3
-   roll 2: 0.80 s, peak(pre-norm) -1.3 dBFS, rms -25.3 dB, samples >= 0 dBFS: 0, note C3
-   roll 3: 0.18 s, peak(pre-norm) -1.3 dBFS, rms -19.2 dB, samples >= 0 dBFS: 0, note C3
+   roll 0: 0.17 s, peak(pre-norm) -1.3 dBFS, rms -21.1 dB, samples >= 0 dBFS: 0, note C3
+   roll 1: 0.24 s, peak(pre-norm) -1.3 dBFS, rms -19.3 dB, samples >= 0 dBFS: 0, note C3
+   roll 2: 0.79 s, peak(pre-norm) -1.3 dBFS, rms -25.2 dB, samples >= 0 dBFS: 0, note C3
+   roll 3: 0.19 s, peak(pre-norm) -1.3 dBFS, rms -19.3 dB, samples >= 0 dBFS: 0, note C3
    roll 4: 0.28 s, peak(pre-norm) -1.3 dBFS, rms -19.4 dB, samples >= 0 dBFS: 0, note C3
    roll 5: 1.29 s, peak(pre-norm) -1.3 dBFS, rms -21.7 dB, samples >= 0 dBFS: 0, note C3
    roll 6: 0.25 s, peak(pre-norm) -1.3 dBFS, rms -19.9 dB, samples >= 0 dBFS: 0, note C3
-   roll 7: 0.23 s, peak(pre-norm) -1.3 dBFS, rms -21.3 dB, samples >= 0 dBFS: 0, note C3
-   variety between rolls: 21.0 dB mean spectral distance
+   roll 7: 0.24 s, peak(pre-norm) -1.3 dBFS, rms -21.5 dB, samples >= 0 dBFS: 0, note C3
+   variety between rolls: 22.9 dB mean spectral distance
 
 Clap      
    roll 0: 1.00 s, peak(pre-norm) -1.3 dBFS, rms -24.6 dB, samples >= 0 dBFS: 0, note C3
@@ -116,10 +116,10 @@ Perc Loop
    roll 2: 1.60 s, peak(pre-norm) -1.3 dBFS, rms -22.5 dB, samples >= 0 dBFS: 0, note C3
    roll 3: 3.20 s, peak(pre-norm) -1.2 dBFS, rms -25.2 dB, samples >= 0 dBFS: 0, note C3
    roll 4: 3.20 s, peak(pre-norm) -1.3 dBFS, rms -30.1 dB, samples >= 0 dBFS: 0, note C3
-   roll 5: 1.07 s, peak(pre-norm) -1.3 dBFS, rms -19.2 dB, samples >= 0 dBFS: 0, note C3
+   roll 5: 1.07 s, peak(pre-norm) -1.3 dBFS, rms -19.1 dB, samples >= 0 dBFS: 0, note C3
    roll 6: 1.60 s, peak(pre-norm) -1.3 dBFS, rms -16.8 dB, samples >= 0 dBFS: 0, note C3
    roll 7: 1.07 s, peak(pre-norm) -1.3 dBFS, rms -24.9 dB, samples >= 0 dBFS: 0, note C3
-   variety between rolls: 46.5 dB mean spectral distance
+   variety between rolls: 46.3 dB mean spectral distance
 
 FX        
    roll 0: 3.48 s, peak(pre-norm) -1.3 dBFS, rms -22.4 dB, samples >= 0 dBFS: 0, note C3

@@ -156,78 +156,78 @@ Kick: 20/71 knobs audible as rolled, 57/71 with their section on (repeat-render 
       boost        as rolled  35.00 dB   module on  35.00 dB
 
 Snare: 26/71 knobs audible as rolled, 55/71 with their section on (repeat-render noise 0.000 dB)
-   not audible: a_level (0.77), a_uni (0.43), a_detune (0.57), b_wave (0.93), b_fine (0.83), b_level (0.70), b_detune (0.68), b_width (0.86), sub_shape (0.21), flt_type (0.62), flt_key (0.81), e2_r (0.08), lfo_rate (0.42), lfo_sync (0.74), lfo_dest (0.79), lfo_amt (0.50)
-      a_wave       as rolled   1.33 dB   module on   1.33 dB
-      a_oct        as rolled   5.48 dB   module on   5.48 dB
-      a_semi       as rolled   3.92 dB   module on   3.92 dB
-      a_fine       as rolled   1.42 dB   module on   1.42 dB
-      a_level      as rolled   0.77 dB   module on   0.77 dB   <-- no audible change
-      a_uni        as rolled   0.43 dB   module on   0.43 dB   <-- no audible change
+   not audible: a_level (0.76), a_uni (0.42), a_detune (0.57), b_wave (0.92), b_fine (0.80), b_level (0.68), b_detune (0.68), b_width (0.86), sub_shape (0.21), flt_type (0.65), flt_key (0.83), e2_r (0.42), lfo_rate (0.48), lfo_sync (0.74), lfo_dest (0.83), lfo_amt (0.54)
+      a_wave       as rolled   1.29 dB   module on   1.29 dB
+      a_oct        as rolled   5.39 dB   module on   5.39 dB
+      a_semi       as rolled   3.82 dB   module on   3.82 dB
+      a_fine       as rolled   1.39 dB   module on   1.39 dB
+      a_level      as rolled   0.76 dB   module on   0.76 dB   <-- no audible change
+      a_uni        as rolled   0.42 dB   module on   0.42 dB   <-- no audible change
       a_detune     as rolled   0.00 dB   module on   0.57 dB   <-- no audible change
       a_width      as rolled   0.00 dB   module on   3.98 dB
-      b_wave       as rolled   0.93 dB   module on   0.93 dB   <-- no audible change
-      b_oct        as rolled   1.82 dB   module on   1.82 dB
-      b_semi       as rolled   1.45 dB   module on   1.45 dB
-      b_fine       as rolled   0.83 dB   module on   0.83 dB   <-- no audible change
-      b_level      as rolled   0.70 dB   module on   0.70 dB   <-- no audible change
+      b_wave       as rolled   0.92 dB   module on   0.92 dB   <-- no audible change
+      b_oct        as rolled   1.80 dB   module on   1.80 dB
+      b_semi       as rolled   1.43 dB   module on   1.43 dB
+      b_fine       as rolled   0.80 dB   module on   0.80 dB   <-- no audible change
+      b_level      as rolled   0.68 dB   module on   0.68 dB   <-- no audible change
       b_uni        as rolled   5.09 dB   module on   5.09 dB
       b_detune     as rolled   0.00 dB   module on   0.68 dB   <-- no audible change
       b_width      as rolled   0.00 dB   module on   0.86 dB   <-- no audible change
-      sub_level    as rolled   2.13 dB   module on   2.13 dB
-      sub_oct      as rolled   0.00 dB   module on   1.66 dB
+      sub_level    as rolled   2.11 dB   module on   2.11 dB
+      sub_oct      as rolled   0.00 dB   module on   1.62 dB
       sub_shape    as rolled   0.00 dB   module on   0.21 dB   <-- no audible change
-      noise_level  as rolled   2.63 dB   module on   2.63 dB
-      noise_color  as rolled   3.51 dB   module on   3.51 dB
-      flt_type     as rolled   0.62 dB   module on   0.62 dB   <-- no audible change
-      flt_cutoff   as rolled   4.96 dB   module on   4.96 dB
-      flt_res      as rolled   0.38 dB   module on   1.03 dB
-      flt_drive    as rolled   2.71 dB   module on   2.71 dB
+      noise_level  as rolled   2.64 dB   module on   2.64 dB
+      noise_color  as rolled   3.58 dB   module on   3.58 dB
+      flt_type     as rolled   0.65 dB   module on   0.65 dB   <-- no audible change
+      flt_cutoff   as rolled   5.04 dB   module on   5.04 dB
+      flt_res      as rolled   0.42 dB   module on   1.04 dB
+      flt_drive    as rolled   2.65 dB   module on   2.65 dB
       flt_env      as rolled   4.00 dB   module on   4.00 dB
-      flt_key      as rolled   0.38 dB   module on   0.81 dB   <-- no audible change
-      e1_a         as rolled   2.59 dB   module on   2.59 dB
-      e1_d         as rolled  18.11 dB   module on  18.11 dB
+      flt_key      as rolled   0.40 dB   module on   0.83 dB   <-- no audible change
+      e1_a         as rolled   2.45 dB   module on   2.45 dB
+      e1_d         as rolled  18.07 dB   module on  18.07 dB
       e1_s         as rolled   5.84 dB   module on   5.84 dB
-      e1_r         as rolled   0.82 dB   module on  11.96 dB
+      e1_r         as rolled   0.40 dB   module on  11.90 dB
       e2_a         as rolled   0.00 dB   module on   1.86 dB
-      e2_d         as rolled   0.00 dB   module on   3.11 dB
+      e2_d         as rolled   0.00 dB   module on   3.12 dB
       e2_s         as rolled   0.00 dB   module on   1.69 dB
-      e2_r         as rolled   0.00 dB   module on   0.08 dB   <-- no audible change
-      penv_amt     as rolled   2.90 dB   module on   2.90 dB
-      penv_decay   as rolled   2.90 dB   module on   2.90 dB
+      e2_r         as rolled   0.00 dB   module on   0.42 dB   <-- no audible change
+      penv_amt     as rolled   2.88 dB   module on   2.88 dB
+      penv_decay   as rolled   2.84 dB   module on   2.84 dB
       lfo_shape    as rolled   0.00 dB   module on   1.37 dB
-      lfo_rate     as rolled   0.00 dB   module on   0.42 dB   <-- no audible change
+      lfo_rate     as rolled   0.00 dB   module on   0.48 dB   <-- no audible change
       lfo_sync     as rolled   0.00 dB   module on   0.74 dB   <-- no audible change
       lfo_div      as rolled   0.00 dB   module on   1.69 dB
-      lfo_dest     as rolled   0.00 dB   module on   0.79 dB   <-- no audible change
-      lfo_amt      as rolled   0.50 dB   module on   0.50 dB   <-- no audible change
-      dist_type    as rolled   0.00 dB   module on   2.78 dB
-      dist_drive   as rolled   0.00 dB   module on   2.64 dB
-      dist_tone    as rolled   0.00 dB   module on   1.59 dB
-      dist_mix     as rolled   0.00 dB   module on   1.75 dB
-      cho_rate     as rolled   0.00 dB   module on   1.54 dB
-      cho_depth    as rolled   0.00 dB   module on   1.09 dB
+      lfo_dest     as rolled   0.00 dB   module on   0.83 dB   <-- no audible change
+      lfo_amt      as rolled   0.54 dB   module on   0.54 dB   <-- no audible change
+      dist_type    as rolled   0.00 dB   module on   2.88 dB
+      dist_drive   as rolled   0.00 dB   module on   2.73 dB
+      dist_tone    as rolled   0.00 dB   module on   1.69 dB
+      dist_mix     as rolled   0.00 dB   module on   1.81 dB
+      cho_rate     as rolled   0.00 dB   module on   1.53 dB
+      cho_depth    as rolled   0.00 dB   module on   1.12 dB
       cho_mix      as rolled   0.00 dB   module on   1.31 dB
-      dly_div      as rolled   0.00 dB   module on   7.31 dB
+      dly_div      as rolled   0.00 dB   module on   7.25 dB
       dly_fb       as rolled   0.00 dB   module on   6.68 dB
-      dly_tone     as rolled   0.00 dB   module on   2.96 dB
-      dly_mix      as rolled   0.00 dB   module on   4.99 dB
+      dly_tone     as rolled   0.00 dB   module on   2.94 dB
+      dly_mix      as rolled   0.00 dB   module on   4.96 dB
       dly_pp       as rolled   0.00 dB   module on   4.30 dB
-      rev_size     as rolled   4.29 dB   module on   4.29 dB
+      rev_size     as rolled   4.22 dB   module on   4.22 dB
       rev_damp     as rolled   1.57 dB   module on   1.57 dB
       rev_width    as rolled   1.72 dB   module on   1.72 dB
-      rev_mix      as rolled   7.89 dB   module on   7.89 dB
-      noise_decay  as rolled   9.27 dB   module on   9.27 dB
-      ring         as rolled   1.12 dB   module on   1.12 dB
-      burst        as rolled   3.32 dB   module on   3.32 dB
-      burst_gap    as rolled   0.00 dB   module on   4.19 dB
-      vox_vowel    as rolled   0.00 dB   module on   2.76 dB
-      vox_env      as rolled   0.00 dB   module on   3.00 dB
-      vox_mix      as rolled   0.00 dB   module on   1.34 dB
-      seq_pat      as rolled   0.00 dB   module on  22.32 dB
+      rev_mix      as rolled   7.79 dB   module on   7.79 dB
+      noise_decay  as rolled   9.25 dB   module on   9.25 dB
+      ring         as rolled   1.07 dB   module on   1.07 dB
+      burst        as rolled   3.26 dB   module on   3.26 dB
+      burst_gap    as rolled   0.00 dB   module on   4.15 dB
+      vox_vowel    as rolled   0.00 dB   module on   2.74 dB
+      vox_env      as rolled   0.00 dB   module on   2.94 dB
+      vox_mix      as rolled   0.00 dB   module on   1.30 dB
+      seq_pat      as rolled   0.00 dB   module on  22.05 dB
       seq_rate     as rolled   0.00 dB   module on  16.97 dB
-      seq_vary     as rolled   0.00 dB   module on   1.25 dB
-      seq_swing    as rolled   0.00 dB   module on   6.54 dB
-      boost        as rolled   6.50 dB   module on   6.50 dB
+      seq_vary     as rolled   0.00 dB   module on   1.21 dB
+      seq_swing    as rolled   0.00 dB   module on   6.55 dB
+      boost        as rolled   6.49 dB   module on   6.49 dB
 
 Clap: 24/71 knobs audible as rolled, 61/71 with their section on (repeat-render noise 0.000 dB)
    not audible: a_uni (0.74), a_detune (0.54), b_width (0.93), sub_shape (0.64), flt_drive (0.91), e2_r (0.02), penv_amt (0.00), penv_decay (0.00), lfo_sync (0.61), seq_vary (0.00)
@@ -586,7 +586,7 @@ Perc: 34/71 knobs audible as rolled, 59/71 with their section on (repeat-render 
       rev_damp     as rolled   2.20 dB   module on   2.20 dB
       rev_width    as rolled   1.81 dB   module on   1.81 dB
       rev_mix      as rolled   6.41 dB   module on   6.41 dB
-      noise_decay  as rolled   3.54 dB   module on   3.54 dB
+      noise_decay  as rolled   3.56 dB   module on   3.56 dB
       ring         as rolled   4.54 dB   module on   4.54 dB
       burst        as rolled   3.69 dB   module on   3.69 dB
       burst_gap    as rolled   0.00 dB   module on   3.04 dB
@@ -748,7 +748,7 @@ Sub Bass: 27/71 knobs audible as rolled, 66/71 with their section on (repeat-ren
       boost        as rolled   6.02 dB   module on   6.02 dB
 
 Perc Loop: 33/71 knobs audible as rolled, 65/71 with their section on (repeat-render noise 0.000 dB)
-   not audible: sub_shape (0.35), noise_level (0.99), noise_color (0.82), flt_drive (0.94), flt_key (0.89), e2_r (0.20)
+   not audible: sub_shape (0.35), noise_level (0.99), noise_color (0.82), flt_drive (0.94), flt_key (0.89), e2_r (0.05)
       a_wave       as rolled   3.65 dB   module on   3.65 dB
       a_oct        as rolled  11.94 dB   module on  11.94 dB
       a_semi       as rolled   4.81 dB   module on   4.81 dB
@@ -783,7 +783,7 @@ Perc Loop: 33/71 knobs audible as rolled, 65/71 with their section on (repeat-re
       e2_a         as rolled   2.75 dB   module on   2.75 dB
       e2_d         as rolled   2.28 dB   module on   2.28 dB
       e2_s         as rolled   1.08 dB   module on   1.08 dB
-      e2_r         as rolled   0.00 dB   module on   0.20 dB   <-- no audible change
+      e2_r         as rolled   0.00 dB   module on   0.05 dB   <-- no audible change
       penv_amt     as rolled   2.32 dB   module on   2.32 dB
       penv_decay   as rolled   3.80 dB   module on   3.80 dB
       lfo_shape    as rolled   0.00 dB   module on   3.37 dB
@@ -808,7 +808,7 @@ Perc Loop: 33/71 knobs audible as rolled, 65/71 with their section on (repeat-re
       rev_damp     as rolled   0.00 dB   module on   1.67 dB
       rev_width    as rolled   0.00 dB   module on   1.83 dB
       rev_mix      as rolled   0.00 dB   module on   5.48 dB
-      noise_decay  as rolled  12.44 dB   module on  12.44 dB
+      noise_decay  as rolled  13.57 dB   module on  13.57 dB
       ring         as rolled   2.91 dB   module on   2.91 dB
       burst        as rolled   8.79 dB   module on   8.79 dB
       burst_gap    as rolled   0.00 dB   module on   8.37 dB
@@ -963,9 +963,9 @@ Vox Chant: 37/71 knobs audible as rolled, 58/71 with their section on (repeat-re
       vox_vowel    as rolled   2.01 dB   module on   2.01 dB
       vox_env      as rolled   1.47 dB   module on   1.47 dB
       vox_mix      as rolled   2.67 dB   module on   2.67 dB
-      seq_pat      as rolled   0.00 dB   module on  11.09 dB
-      seq_rate     as rolled   0.00 dB   module on  13.47 dB
-      seq_vary     as rolled   0.00 dB   module on   2.53 dB
+      seq_pat      as rolled   0.00 dB   module on  11.10 dB
+      seq_rate     as rolled   0.00 dB   module on  13.48 dB
+      seq_vary     as rolled   0.00 dB   module on   2.54 dB
       seq_swing    as rolled   0.00 dB   module on   5.79 dB
       boost        as rolled   7.46 dB   module on   7.46 dB
 

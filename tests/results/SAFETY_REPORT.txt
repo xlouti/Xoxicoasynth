@@ -54,7 +54,7 @@
    Dark Pad   rms range  -35.95 ..  -18.33 dB, worst peak   -3.23 dBFS, unusable rolls: 0/60
    Pluck      rms range  -29.78 ..  -20.43 dB, worst peak   -0.50 dBFS, unusable rolls: 0/60
    Kick       rms range  -19.24 ..  -11.33 dB, worst peak   -1.27 dBFS, unusable rolls: 0/60
-   Snare      rms range  -31.13 ..  -14.61 dB, worst peak   -1.27 dBFS, unusable rolls: 0/60
+   Snare      rms range  -31.13 ..  -14.64 dB, worst peak   -1.27 dBFS, unusable rolls: 0/60
    Clap       rms range  -30.01 ..  -13.53 dB, worst peak   -1.27 dBFS, unusable rolls: 0/60
    Hi Hat     rms range  -27.36 ..  -18.39 dB, worst peak   -1.27 dBFS, unusable rolls: 0/60
    Open Hat   rms range  -29.82 ..  -18.79 dB, worst peak   -1.27 dBFS, unusable rolls: 0/60
@@ -70,9 +70,9 @@
    NaN/Inf renders: 0, renders over ceiling: 0
 
 == CPU (single thread, this Linux box; 10 s renders)
-   Glokk Siren, 1 note                                 1.20 % of one core
-   Glokk Siren, 4-note chord                           2.73 % of one core
+   Glokk Siren, 1 note                                 1.31 % of one core
+   Glokk Siren, 4-note chord                           2.59 % of one core
    Glide 808, 1 note                                   0.65 % of one core
-   WORST CASE: 16 voices x (7+7 unison) + sub/noise + all FX9.73 % of one core
+   WORST CASE: 16 voices x (7+7 unison) + sub/noise + all FX9.74 % of one core
 
 ALL SAFETY CHECKS PASSED

@@ -188,7 +188,7 @@ public:
         const int n = c.n;
         const auto& bank = WavetableBank::get();
         updateEnvs (c);
-        if (autoRel >= 0) { autoRel -= n; if (autoRel < 0) { autoRel = -1; release(); } }
+        if (autoRel >= 0) { autoRel -= n; if (autoRel < 0) { autoRel = -1; ampEnv.noteOff(); modEnv.noteOff(); } }   // noise layer keeps its own decay
 
         // pass 1: pitch per sample (glide, pitch env, bend, vibrato)
         float freq[VoiceCtrl::kMax];

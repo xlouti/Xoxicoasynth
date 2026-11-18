@@ -1,0 +1,66 @@
+== Clicks (sine, attack 0, release 1 ms -> engine minimums 1 ms / 4 ms)
+   HF burst = energy of the 2nd difference around the event vs. the sustained note (dB). A hard
+   on/off step measures about +10 dB; a steady 220 Hz sine about -48 dB.
+   note-on -54.1 dB, note-off -62.6 dB, steady -61.4 dB
+   voice-steal (notes 17-20 on a 16-voice synth): worst HF burst -54.9 dB
+   808 legato slide transition: -78.6 dB
+
+== Factory presets (poly phrase or slide phrase), limiter on
+   Rage Lead  Glokk Siren        rms  -16.75 dB  peak   -4.95 dBFS
+   Rage Lead  Mosh Pit Saw       rms  -16.61 dB  peak   -7.12 dBFS
+   Rage Lead  Spaz Supersaw      rms  -17.76 dB  peak   -5.14 dBFS
+   Rage Lead  Vamp Stack         rms  -16.12 dB  peak   -6.38 dBFS
+   Rage Lead  Pit Alarm          rms  -17.61 dB  peak   -5.89 dBFS
+   Rage Lead  Blown Speaker      rms  -14.23 dB  peak   -5.91 dBFS
+   Rage Lead  Night Riot         rms  -17.36 dB  peak   -5.14 dBFS
+   Rage Lead  Rage Octaves       rms  -17.76 dB  peak   -5.46 dBFS
+   Plugg Bell Plugg Glass        rms  -23.75 dB  peak   -0.97 dBFS
+   Plugg Bell Candy Bell         rms  -25.05 dB  peak   -0.88 dBFS
+   Plugg Bell Lean Keys          rms  -22.50 dB  peak   -0.75 dBFS
+   Plugg Bell Cloud Chime        rms  -23.10 dB  peak   -0.71 dBFS
+   Plugg Bell Plugg Music Box    rms  -27.12 dB  peak   -2.18 dBFS
+   Plugg Bell Soft Mallet        rms  -23.02 dB  peak   -0.77 dBFS
+   Plugg Bell Dreamy Kalimba     rms  -24.92 dB  peak   -0.83 dBFS
+   Plugg Bell Pink Haze Bell     rms  -21.62 dB  peak   -0.58 dBFS
+   808        Glide 808          rms  -12.72 dB  peak   -6.99 dBFS
+   808        Rage Boom          rms  -11.91 dB  peak   -7.91 dBFS
+   808        Mosh 808 Dist      rms  -12.31 dB  peak   -7.53 dBFS
+   808        Clean Sub          rms  -12.93 dB  peak   -5.19 dBFS
+   808        Punch Knock        rms  -13.68 dB  peak   -4.89 dBFS
+   808        Long Slide         rms  -12.19 dB  peak   -7.56 dBFS
+   808        Fuzz 808           rms  -12.40 dB  peak   -7.43 dBFS
+   808        Plugg Low          rms  -12.89 dB  peak   -7.02 dBFS
+   Dark Pad   Void Pad           rms  -23.96 dB  peak   -6.59 dBFS
+   Dark Pad   Night Drive        rms  -23.43 dB  peak   -5.92 dBFS
+   Dark Pad   Hollow Choir       rms  -23.71 dB  peak   -3.76 dBFS
+   Dark Pad   Smoke Room         rms  -24.94 dB  peak  -11.02 dBFS
+   Dark Pad   Underworld         rms  -23.74 dB  peak   -6.61 dBFS
+   Dark Pad   Cold Strings       rms  -22.67 dB  peak   -6.73 dBFS
+   Dark Pad   Gloom Swell        rms  -37.37 dB  peak  -22.26 dBFS
+   Dark Pad   Black Ice          rms  -23.83 dB  peak   -6.35 dBFS
+   Pluck      Rage Pluck         rms  -24.24 dB  peak   -1.51 dBFS
+   Pluck      Plugg Pluck        rms  -24.77 dB  peak   -0.58 dBFS
+   Pluck      Glass Pick         rms  -24.30 dB  peak   -0.77 dBFS
+   Pluck      Saw Stab           rms  -26.39 dB  peak   -0.69 dBFS
+   Pluck      Bounce Pluck       rms  -23.64 dB  peak   -0.55 dBFS
+   Pluck      Dark Pick          rms  -26.77 dB  peak   -0.75 dBFS
+   Pluck      Rubber Pluck       rms  -23.50 dB  peak   -0.75 dBFS
+   Pluck      Sparkle Pluck      rms  -26.14 dB  peak   -0.68 dBFS
+
+== Generator: 60 rolls per category, wildness 0..1
+   Rage Lead  rms range  -34.33 ..  -13.69 dB, worst peak   -1.52 dBFS, unusable rolls: 0/60
+   Plugg Bell rms range  -26.75 ..  -18.77 dB, worst peak   -0.54 dBFS, unusable rolls: 0/60
+   808        rms range  -17.17 ..  -10.68 dB, worst peak   -1.33 dBFS, unusable rolls: 0/60
+   Dark Pad   rms range  -36.91 ..  -17.65 dB, worst peak   -3.18 dBFS, unusable rolls: 0/60
+   Pluck      rms range  -33.49 ..  -18.97 dB, worst peak   -0.50 dBFS, unusable rolls: 0/60
+
+== Abuse: 100 fully random patches (every param over its full range)
+   NaN/Inf renders: 0, renders over ceiling: 0
+
+== CPU (single thread, this Linux box; 10 s renders)
+   Glokk Siren, 1 note                                 1.33 % of one core
+   Glokk Siren, 4-note chord                           2.75 % of one core
+   Glide 808, 1 note                                   0.61 % of one core
+   WORST CASE: 16 voices x (7+7 unison) + sub/noise + all FX9.93 % of one core
+
+ALL SAFETY CHECKS PASSED

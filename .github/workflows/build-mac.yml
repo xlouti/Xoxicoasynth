@@ -1,0 +1,60 @@
+name: Build Xoxicoa Synth for Mac
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Source/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/build-mac.yml'
+concurrency:
+  group: build-mac-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  mac-universal:
+    # Intel runner (arm64 hosted runners were unavailable); still builds a universal binary.
+    runs-on: macos-15-intel
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 16.4
+        run: |
+          if [ -d /Applications/Xcode_16.4.app ]; then sudo xcode-select -s /Applications/Xcode_16.4.app; fi
+          xcodebuild -version
+      - name: Configure (universal arm64 + x86_64)
+        run: >-
+          cmake -S . -B build-mac -G Xcode
+          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+      - name: Build AU, VST3 and Standalone
+        run: cmake --build build-mac --config Release --parallel 3
+      - name: Sign ad-hoc, verify architectures, package
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="build-mac/XoxicoaSynth_artefacts/Release"
+          mkdir -p package
+          ditto "$ROOT/AU/Xoxicoa Synth.component" "package/Xoxicoa Synth.component"
+          ditto "$ROOT/VST3/Xoxicoa Synth.vst3" "package/Xoxicoa Synth.vst3"
+          ditto "$ROOT/Standalone/Xoxicoa Synth.app" "package/Xoxicoa Synth.app"
+          for b in "package/Xoxicoa Synth.component" "package/Xoxicoa Synth.vst3" "package/Xoxicoa Synth.app"; do
+            codesign --force --deep --sign - "$b"
+            # Xcode 16 lipo: the binary path must come BEFORE -verify_arch
+            lipo "$b/Contents/MacOS/Xoxicoa Synth" -verify_arch arm64 x86_64
+            lipo -info "$b/Contents/MacOS/Xoxicoa Synth"
+          done
+          cp README.md package/
+          ditto -c -k --sequesterRsrc --keepParent package XoxicoaSynth_mac_universal.zip
+      - name: Validate AU (informational)
+        continue-on-error: true
+        run: |
+          mkdir -p ~/Library/Audio/Plug-Ins/Components
+          ditto "package/Xoxicoa Synth.component" ~/Library/Audio/Plug-Ins/Components/"Xoxicoa Synth.component"
+          killall -9 AudioComponentRegistrar || true
+          auval -v aumu XxSy Xoxi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XoxicoaSynth_mac_universal
+          path: XoxicoaSynth_mac_universal.zip
+          retention-days: 30

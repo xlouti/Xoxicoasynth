@@ -8,7 +8,7 @@ namespace xs
 inline const juce::StringArray waveNames { "Sine", "Triangle", "Saw", "Square", "Pulse", "Thin Pulse", "Hollow", "Glass" };
 inline const juce::StringArray filterTypes { "LP 12", "LP 24", "HP 12", "HP 24", "BP" };
 inline const juce::StringArray lfoShapes { "Sine", "Triangle", "Saw", "Square", "S&H" };
-inline const juce::StringArray lfoDests { "Pitch", "Cutoff", "Wave A", "Wave B", "Volume", "Pan" };
+inline const juce::StringArray lfoDests { "Pitch", "Cutoff", "Wave A", "Wave B", "Volume", "Pan", "Vowel" };
 inline const juce::StringArray lfoDivs { "4 Bar", "2 Bar", "1 Bar", "1/2", "1/4", "1/8D", "1/4T", "1/8", "1/8T", "1/16", "1/16T", "1/32" };
 inline constexpr double lfoDivBeats[] { 16.0, 8.0, 4.0, 2.0, 1.0, 0.75, 2.0 / 3.0, 0.5, 1.0 / 3.0, 0.25, 1.0 / 6.0, 0.125 };
 inline const juce::StringArray delayDivs { "1/32", "1/16T", "1/16", "1/16D", "1/8T", "1/8", "1/8D", "1/4T", "1/4", "1/4D", "1/2" };
@@ -16,7 +16,15 @@ inline constexpr double delayDivBeats[] { 0.125, 1.0 / 6.0, 0.25, 0.375, 1.0 / 3
 inline const juce::StringArray voiceModes { "Poly", "Mono", "Legato" };
 inline const juce::StringArray distTypes { "Soft", "Hard", "Fold", "Mosh" };
 inline const juce::StringArray subOctaves { "-1 Oct", "-2 Oct" };
-inline const juce::StringArray categories { "Rage Lead", "Plugg Bell", "808", "Dark Pad", "Pluck" };
+inline const juce::StringArray categories { "Rage Lead", "Plugg Bell", "808", "Dark Pad", "Pluck",
+                                            "Kick", "Snare", "Clap", "Hi Hat", "Open Hat", "Crash", "Perc", "Snap",
+                                            "Sub Bass", "Perc Loop", "FX", "Vox Chant" };
+// sound types (index into categories)
+enum SoundType { stRageLead, stPluggBell, st808, stDarkPad, stPluck, stKick, stSnare, stClap, stHiHat, stOpenHat,
+                 stCrash, stPerc, stSnap, stSubBass, stPercLoop, stFX, stVox, stNumTypes };
+inline const juce::StringArray seqRates { "1/8", "1/16", "1/16T", "1/32" };
+inline constexpr double seqRateBeats[] { 0.5, 0.25, 1.0 / 6.0, 0.125 };
+inline const juce::StringArray vowelNames { "A", "E", "I", "O", "U" };
 
 enum class Kind { Float, Int, Choice, Bool };
 
@@ -123,6 +131,25 @@ inline const std::vector<ParamDef>& paramDefs()
         // generator (do not change the sound directly)
         { "gen_cat",   "Generator Category", Kind::Choice, 0, 4, 0, 0, "", &categories, false },
         { "gen_wild",  "Wildness",   Kind::Float, 0, 1, 0.35f, 0, "", nullptr, false },
+        // ---- v1.1 drum / vox / loop engine (appended so v1.0 automation indices stay put)
+        { "noise_decay","Noise Decay", Kind::Float, 0, 2000, 0, 120, "ms" },   // 0 = noise follows the amp env
+        { "ring",      "Ring Mod",   Kind::Float, 0, 1, 0 },
+        { "burst",     "Claps",      Kind::Int,   0, 6, 0 },
+        { "burst_gap", "Clap Gap",   Kind::Float, 3, 40, 10, 0, "ms" },
+        { "one_shot",  "One Shot",   Kind::Bool,  0, 1, 0 },
+        { "vox_on",    "Vox On",     Kind::Bool,  0, 1, 0 },
+        { "vox_vowel", "Vowel",      Kind::Float, 0, 4, 0 },
+        { "vox_env",   "Vowel Env",  Kind::Float, -1, 1, 0 },
+        { "vox_mix",   "Vox Mix",    Kind::Float, 0, 1, 1 },
+        { "seq_on",    "Loop On",    Kind::Bool,  0, 1, 0 },
+        { "seq_pat",   "Loop Pattern", Kind::Int, 0, 65535, 4369 },
+        { "seq_rate",  "Loop Rate",  Kind::Choice, 0, 3, 1, 0, "", &seqRates },
+        { "seq_vary",  "Loop Vary",  Kind::Float, 0, 1, 0.3f },
+        { "seq_swing", "Swing",      Kind::Float, 0, 1, 0 },
+        { "boost",     "Boost",      Kind::Float, 0, 24, 0, 0, "dB" },     // pre-FX gain: drives the distortion, lifts quiet hits
+        // export (do not change the sound)
+        { "exp_note",  "Export Note", Kind::Int, 24, 84, 36, 0, "", nullptr, false },
+        { "exp_bpm",   "Export BPM", Kind::Int, 60, 200, 150, 0, "", nullptr, false },
     };
     return defs;
 }
@@ -154,10 +181,22 @@ inline juce::String formatValue (const ParamDef& d, float v)
     if (d.kind == Kind::Int)
     {
         const int i = (int) std::round (v);
+        if (juce::String (d.id) == "exp_note") return juce::MidiMessage::getMidiNoteName (i, true, true, 4);
+        if (juce::String (d.id) == "exp_bpm")  return juce::String (i) + " BPM";
+        if (juce::String (d.id) == "seq_pat")  { juce::String t; for (int b = 0; b < 16; ++b) t << ((i >> b) & 1 ? "x" : "-"); return t; }
+        if (juce::String (d.id) == "burst")    return i == 0 ? juce::String ("Off") : juce::String (i) + "x";
         if (juce::String (d.id).endsWith ("_oct") || juce::String (d.id).endsWith ("_semi"))
             return (i > 0 ? "+" : "") + juce::String (i);
         if (juce::String (d.id).endsWith ("_uni")) return juce::String (i) + (i == 1 ? " voice" : " voices");
         return juce::String (i) + (unit.isNotEmpty() ? " " + unit : juce::String());
+    }
+    if (juce::String (d.id) == "noise_decay" && v < 0.5f) return "Amp Env";
+    if (juce::String (d.id) == "vox_vowel")
+    {
+        const int i = (int) std::floor (v);
+        const float f = v - (float) i;
+        if (f < 0.05f || i >= 4) return vowelNames[juce::jlimit (0, 4, (int) std::round (v))];
+        return vowelNames[i] + " > " + vowelNames[i + 1] + " " + juce::String (juce::roundToInt (f * 100)) + "%";
     }
     if (juce::String (d.id).endsWith ("_wave"))
     {

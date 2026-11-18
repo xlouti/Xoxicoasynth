@@ -13,7 +13,7 @@ macOS binary for Apple Silicon and Intel, built with JUCE 8.0.4 and CMake.
 - **Amp ADSR** and **Mod ADSR** (routed to the filter). Click-free: attack starts from the current level, with a 1 ms minimum attack and a 4 ms minimum release.
 - **Pitch envelope** (-24 to +48 st, 1-1000 ms decay) for 808 punch and knock.
 - **LFO**: Sine / Tri / Saw / Square / S&H. Free rate or tempo sync (4 bars to 1/32, triplets and dotted).
-  Destinations: Pitch, Cutoff, Wave A, Wave B, Volume, Pan.
+  Destinations: Pitch, Cutoff, Wave A, Wave B, Volume, Pan, Vowel.
 - **Voice**: Poly (16 voices) / Mono / Legato, Glide, Bend range and Velocity sensitivity.
   Legato with overlapping notes gives FL-style 808 slides with no retrigger.
 - **FX**:
@@ -23,14 +23,34 @@ macOS binary for Apple Silicon and Intel, built with JUCE 8.0.4 and CMake.
   - Reverb with Size, Damp, Width and Mix.
 - **Master**: volume plus a 1.5 ms look-ahead limiter with a -0.5 dBFS ceiling.
 
+- **Drum section (v1.1)**: Noise Decay (gives the noise its own envelope: kick click, snare wires, hat sizzle),
+  Ring (Osc A x Osc B ring mod for metallic hats, crashes, bells), Claps (0-6 pre-hits) + Clap Gap,
+  Boost (0-24 dB pre-FX gain that also drives the distortion), One Shot (ignore note-off so hits ring out).
+- **Vox Formant (v1.1)**: 3-band vowel filter (A-E-I-O-U morph), Vowel Env (Mod Env moves the vowel: "hey", "ay-oh"), Mix.
+- **Loop (v1.1)**: hold a note and a 16-step pattern retriggers the sound in tempo: clickable step grid,
+  Rate (1/8, 1/16, 1/16T, 1/32), Vary (per-step pitch + accent variation) and Swing.
+
 ## Generator
-Pick a category (Rage Lead, Plugg Bell, 808, Dark Pad, Pluck), set **Wild**, then hit **GENERATE**.
+Pick a sound type, set **Wild**, then hit **GENERATE**. Types: Rage Lead, Plugg Bell, 808, Dark Pad, Pluck,
+Kick, Snare, Clap, Hi Hat, Open Hat, Crash, Perc, Snap, Sub Bass, Perc Loop, FX, Vox Chant.
+Drums, loops, FX and vox chants are built from the synth's own oscillators, noise, filter, envelopes and FX
+(plus the v1.1 drum / vox / loop sections), so every normal knob keeps shaping a generated sound and
+MIDI plays it chromatically. One-shots are peak-normalised to -1 dBFS before the limiter.
 Every roll starts from a hand-tuned category template and randomises inside musical "safe" ranges.
 Wild widens those ranges toward hand-set "wild" limits. Each roll is then rendered offline in about 50 ms
 and loudness-matched, so rolls land at a consistent level.
 
+## Export (v1.1)
+- **PLAY** (or click the waveform) auditions the sound at the export **Note**.
+- **SAVE WAV** writes a 24-bit 44.1 kHz WAV to `~/Music/Xoxicoa Kit Gen/<Folder>/`, e.g. `Xoxicoa 808 07 (F#).wav`,
+  `Xoxicoa Kick 03.wav`, `Xoxicoa Perc Loop 02 150 BPM.wav`. Folders: 808s, Kicks, Snares, Claps, Hi Hats, Open Hats,
+  Crashes, Percs, Snaps, Sub Basses, Foley and Percussion Loops, FX, Vox Chants, Synth One Shots.
+- **GEN 10** generates and saves 10 new variations of the selected type.
+- **Drag** the waveform into FL Studio (or Finder) to drop the WAV.
+- **BPM** sets the export tempo for loops (exactly 16 steps, tail wrapped to the start so it loops seamlessly).
+
 ## Presets
-There are 40 factory presets, 8 per category, all loudness-matched. User presets save and load as `.xoxpreset`
+There are 40 factory synth presets, 8 per category, all loudness-matched. User presets save and load as `.xoxpreset`
 files in `~/Music/Xoxicoa Synth/Presets`. Click the preset name to browse by category, or use < and > to step through.
 
 ## Controls
@@ -46,6 +66,7 @@ files in `~/Music/Xoxicoa Synth/Presets`. Click the preset name to browse by cat
 - **Tests**: configure with `-DXS_BUILD_TESTS=ON`, then run:
   - `XoxicoaSynthAudit audit|safety|demos|calibrate <path>`
   - `XoxicoaSynthUISnapshot out.png`
+  - `XoxicoaSynthKitGenTest examples <dir> <report> | knobs <report> | shot <png> <type> | export <type> <n>`
 
   Latest reports are in `tests/results/`.
 

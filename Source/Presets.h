@@ -76,7 +76,7 @@ inline Patch categoryBase (int cat)
             { "lfo_shape", 1 }, { "lfo_dest", 1 }, { "lfo_rate", 0.25f }, { "lfo_amt", 0.3f },
             { "cho_on", 1 }, { "cho_rate", 0.3f }, { "cho_depth", 0.6f }, { "cho_mix", 0.5f },
             { "rev_on", 1 }, { "rev_size", 0.93f }, { "rev_damp", 0.55f }, { "rev_mix", 0.48f }, { "master_vol", -3 } });
-        default: return merge (initPatch(), {  // Pluck
+        case 4: return merge (initPatch(), {  // Pluck
             { "a_wave", 2.2f }, { "a_uni", 3 }, { "a_detune", 0.15f }, { "a_level", 0.8f },
             { "b_on", 1 }, { "b_wave", 3.4f }, { "b_oct", 1 }, { "b_level", 0.3f },
             { "flt_type", 1 }, { "flt_cutoff", 600 }, { "flt_res", 0.25f }, { "flt_env", 0.7f }, { "flt_key", 0.5f },
@@ -84,8 +84,17 @@ inline Patch categoryBase (int cat)
             { "e2_a", 0 }, { "e2_d", 200 }, { "e2_s", 0.0f }, { "e2_r", 200 },
             { "dly_on", 1 }, { "dly_div", 6 }, { "dly_fb", 0.33f }, { "dly_mix", 0.22f },
             { "rev_on", 1 }, { "rev_size", 0.65f }, { "rev_mix", 0.22f }, { "master_vol", -2 } });
+        default: return merge (initPatch(), {  // drums / one-shots / loops / fx / vox
+            { "a_wave", 0 }, { "a_uni", 1 }, { "a_level", 0.8f }, { "a_width", 0.0f },
+            { "flt_type", 0 }, { "flt_cutoff", 20000 }, { "flt_res", 0.0f }, { "flt_key", 0.0f },
+            { "e1_a", 0 }, { "e1_d", 300 }, { "e1_s", 0.0f }, { "e1_r", 120 },
+            { "e2_a", 0 }, { "e2_d", 200 }, { "e2_s", 0.0f }, { "e2_r", 150 },
+            { "vel_sens", 0.35f }, { "one_shot", 1 }, { "master_vol", 0 } });
     }
 }
+
+// Sound types that are pitched instruments: their export file name carries the key.
+inline bool isTonalType (int t) { return t <= stPluck || t == stSubBass || t == stVox; }
 
 inline std::vector<Preset> buildFactoryPresets()
 {
@@ -172,9 +181,34 @@ public:
             case 1: g.pluggBell (p); break;
             case 2: g.eight08 (p); break;
             case 3: g.darkPad (p); break;
-            default: g.pluck (p); break;
+            case 4: g.pluck (p); break;
+            case stKick: g.kick (p); break;
+            case stSnare: g.snare (p); break;
+            case stClap: g.clap (p); break;
+            case stHiHat: g.hat (p, 0); break;
+            case stOpenHat: g.hat (p, 1); break;
+            case stCrash: g.hat (p, 2); break;
+            case stPerc: g.perc (p); break;
+            case stSnap: g.snap (p); break;
+            case stSubBass: g.subBass (p); break;
+            case stPercLoop: g.percLoop (p); break;
+            case stFX: g.fx (p); break;
+            case stVox: g.vox (p); break;
+            default: break;
         }
         return p;
+    }
+
+    // MIDI note the export / audition plays. Tonal types get a random key in a useful register.
+    static int exportNote (int cat, juce::Random& rng)
+    {
+        switch (cat)
+        {
+            case st808: case stSubBass: return 28 + rng.nextInt (12);   // E1 .. D#2
+            case stVox:                 return 50 + rng.nextInt (12);   // D3 .. C#4
+            case stDarkPad: case stPluck: case stRageLead: case stPluggBell: return 55 + rng.nextInt (12);
+            default:                    return 48;                      // drums are tuned with the oscillator Octave/Semi
+        }
     }
 
 private:
@@ -302,9 +336,11 @@ private:
         p["b_level"] = range (0.08f, 0.2f, 0.05f, 0.4f);
         p["sub_level"] = range (0.0f, 0.3f, 0.0f, 0.5f);
         p["flt_type"] = 0;
-        p["flt_cutoff"] = range (1800.0f, 6000.0f, 500.0f, 20000.0f, true);
-        p["flt_res"] = range (0.0f, 0.12f, 0.0f, 0.35f);
-        p["flt_drive"] = range (0.15f, 0.45f, 0.0f, 0.8f);
+        p["flt_cutoff"] = range (700.0f, 2800.0f, 400.0f, 12000.0f, true);   // low enough that Cutoff / Reso / Env shape the drive
+        p["flt_res"] = range (0.05f, 0.2f, 0.0f, 0.4f);
+        p["flt_drive"] = range (0.3f, 0.6f, 0.1f, 0.85f);
+        p["flt_env"] = range (0.1f, 0.35f, 0.0f, 0.6f);
+        p["e2_d"] = range (120.0f, 400.0f, 60.0f, 900.0f, true);
         p["e1_d"] = range (900.0f, 2800.0f, 300.0f, 5000.0f, true);
         p["e1_s"] = range (0.5f, 0.9f, 0.1f, 1.0f);
         p["e1_r"] = range (150.0f, 450.0f, 60.0f, 900.0f, true);
@@ -378,6 +414,329 @@ private:
         p["dly_fb"] = range (0.25f, 0.45f, 0.1f, 0.65f);
         p["dly_mix"] = range (0.16f, 0.28f, 0.08f, 0.4f);
         p["rev_mix"] = range (0.15f, 0.3f, 0.08f, 0.5f);
+    }
+
+    // ======================= drums / one-shots (v1.1) =======================
+    // Every type is built only from the synth's own modules, so all the normal knobs keep shaping it.
+    float pickf (std::initializer_list<float> s) { return *(s.begin() + juce::jmin ((int) s.size() - 1, (int) (rnd() * (float) s.size()))); }
+
+    void kick (Patch& p)
+    {
+        p["a_wave"] = range (0.0f, 0.35f, 0.0f, 1.2f);                 // sine -> triangle for more knock
+        p["a_oct"] = -1;
+        p["a_semi"] = std::round (range (-9.0f, -2.0f, -12.0f, 3.0f));  // 41-58 Hz body
+        p["a_level"] = 0.9f;
+        p["sub_level"] = chance (0.3f, 0.5f) ? range (0.1f, 0.3f, 0.0f, 0.5f) : 0.0f;
+        p["noise_level"] = range (0.15f, 0.45f, 0.0f, 0.8f);            // beater click
+        p["noise_color"] = range (0.7f, 1.0f, 0.4f, 1.0f);
+        p["noise_decay"] = range (4.0f, 14.0f, 2.0f, 40.0f, true);
+        p["flt_type"] = 0;
+        p["flt_cutoff"] = range (5000.0f, 14000.0f, 1500.0f, 20000.0f, true);
+        p["flt_res"] = range (0.0f, 0.15f, 0.0f, 0.4f);
+        p["flt_drive"] = range (0.1f, 0.4f, 0.0f, 0.8f);
+        p["flt_env"] = range (0.0f, 0.3f, 0.0f, 0.6f);
+        p["e2_d"] = range (30.0f, 90.0f, 15.0f, 250.0f, true);
+        p["e1_d"] = range (260.0f, 650.0f, 150.0f, 1400.0f, true);
+        p["e1_r"] = range (60.0f, 140.0f, 30.0f, 400.0f, true);
+        p["penv_amt"] = range (24.0f, 40.0f, 12.0f, 48.0f);
+        p["penv_decay"] = range (22.0f, 60.0f, 10.0f, 140.0f, true);
+        p["dist_on"] = chance (0.6f, 0.85f) ? 1.0f : 0.0f;
+        p["dist_type"] = pick ({ 0, 0, 1 }, { 0, 1, 2, 3 });
+        p["dist_drive"] = range (0.15f, 0.45f, 0.05f, 0.85f);
+        p["dist_tone"] = range (0.45f, 0.8f, 0.2f, 1.0f);
+        p["dist_mix"] = range (0.6f, 1.0f, 0.3f, 1.0f);
+    }
+
+    void snare (Patch& p)
+    {
+        p["a_wave"] = range (0.0f, 1.0f, 0.0f, 2.5f);
+        p["a_semi"] = std::round (range (4.0f, 11.0f, -2.0f, 14.0f));   // 165-245 Hz body
+        p["a_level"] = range (0.7f, 0.95f, 0.4f, 1.0f);
+        p["b_on"] = chance (0.35f, 0.6f) ? 1.0f : 0.0f;                  // second drum mode
+        p["b_wave"] = range (0.0f, 1.0f, 0.0f, 3.0f);
+        p["b_semi"] = std::round (range (7.0f, 10.0f, 3.0f, 12.0f)); p["b_fine"] = range (-40.0f, 40.0f, -100.0f, 100.0f);
+        p["b_level"] = range (0.2f, 0.4f, 0.1f, 0.6f);
+        p["noise_level"] = range (0.4f, 0.7f, 0.25f, 1.0f);
+        p["noise_color"] = range (0.6f, 0.95f, 0.3f, 1.0f);
+        p["noise_decay"] = range (160.0f, 360.0f, 70.0f, 650.0f, true);
+        p["flt_type"] = pick ({ 0, 0, 4 }, { 0, 2, 4 });
+        p["flt_cutoff"] = p["flt_type"] > 3 ? range (1800.0f, 3500.0f, 900.0f, 6000.0f, true) : range (5000.0f, 13000.0f, 2500.0f, 20000.0f, true);
+        p["flt_res"] = range (0.05f, 0.25f, 0.0f, 0.5f);
+        p["flt_drive"] = range (0.1f, 0.35f, 0.0f, 0.7f);
+        p["e1_d"] = range (120.0f, 240.0f, 60.0f, 400.0f, true);
+        p["e1_r"] = range (80.0f, 200.0f, 40.0f, 400.0f, true);
+        p["penv_amt"] = range (5.0f, 14.0f, 0.0f, 24.0f);
+        p["penv_decay"] = range (15.0f, 45.0f, 8.0f, 90.0f, true);
+        p["dist_on"] = chance (0.45f, 0.8f) ? 1.0f : 0.0f;
+        p["dist_type"] = pick ({ 0, 1 }, { 0, 1, 2, 3 });
+        p["dist_drive"] = range (0.15f, 0.4f, 0.05f, 0.8f);
+        p["dist_tone"] = range (0.55f, 0.9f, 0.3f, 1.0f);
+        p["rev_on"] = chance (0.35f, 0.6f) ? 1.0f : 0.0f;
+        p["rev_size"] = range (0.3f, 0.55f, 0.1f, 0.8f);
+        p["rev_mix"] = range (0.08f, 0.18f, 0.05f, 0.3f);
+    }
+
+    void clap (Patch& p)
+    {
+        p["a_on"] = 0;
+        p["noise_level"] = 1.0f;
+        p["noise_color"] = range (0.65f, 1.0f, 0.4f, 1.0f);
+        p["burst"] = pick ({ 2, 3, 3, 4 }, { 1, 2, 3, 4, 5, 6 });
+        p["burst_gap"] = range (7.0f, 12.0f, 4.0f, 22.0f);
+        p["flt_type"] = 4;
+        p["flt_cutoff"] = range (900.0f, 1700.0f, 500.0f, 3500.0f, true);
+        p["flt_res"] = range (0.15f, 0.4f, 0.0f, 0.65f);
+        p["flt_env"] = range (0.0f, 0.2f, -0.2f, 0.5f);
+        p["e2_d"] = range (40.0f, 120.0f, 20.0f, 300.0f, true);
+        p["e1_d"] = range (120.0f, 260.0f, 70.0f, 500.0f, true);
+        p["e1_r"] = range (100.0f, 220.0f, 50.0f, 400.0f, true);
+        p["dist_on"] = chance (0.35f, 0.7f) ? 1.0f : 0.0f;
+        p["dist_type"] = pick ({ 0, 1 }, { 0, 1, 3 });
+        p["dist_drive"] = range (0.15f, 0.35f, 0.05f, 0.7f);
+        p["rev_on"] = chance (0.7f, 0.8f) ? 1.0f : 0.0f;
+        p["rev_size"] = range (0.3f, 0.6f, 0.15f, 0.85f);
+        p["rev_mix"] = range (0.12f, 0.25f, 0.05f, 0.4f);
+    }
+
+    // kind 0 closed hat, 1 open hat, 2 crash
+    void hat (Patch& p, int kind)
+    {
+        p["a_wave"] = range (2.8f, 3.2f, 1.5f, 5.5f);                   // square-ish metal partials
+        p["a_oct"] = pick ({ 2, 3 }, { 1, 2, 3 });
+        p["a_semi"] = std::round (range (0.0f, 7.0f, -12.0f, 12.0f));
+        p["a_level"] = 0.8f;
+        p["b_on"] = 1;
+        p["b_wave"] = range (2.8f, 3.2f, 1.5f, 5.5f);
+        p["b_oct"] = p["a_oct"];
+        p["b_semi"] = std::round (range (4.0f, 11.0f, 1.0f, 12.0f));
+        p["b_fine"] = range (-50.0f, 50.0f, -100.0f, 100.0f);          // inharmonic ratio
+        p["b_level"] = 0.8f;
+        p["ring"] = range (0.55f, 0.95f, 0.2f, 1.0f);
+        p["noise_level"] = range (0.35f, 0.7f, 0.15f, 1.0f);
+        p["noise_color"] = range (0.8f, 1.0f, 0.5f, 1.0f);
+        p["flt_type"] = pick ({ 3, 3, 2 }, { 2, 3, 4 });
+        p["flt_res"] = range (0.05f, 0.3f, 0.0f, 0.55f);
+        p["vel_sens"] = 0.5f;
+        if (kind == 0)
+        {
+            p["flt_cutoff"] = range (6500.0f, 10000.0f, 3500.0f, 13000.0f, true);
+            p["e1_d"] = range (35.0f, 90.0f, 20.0f, 160.0f, true);
+            p["e1_r"] = range (30.0f, 70.0f, 15.0f, 150.0f, true);
+        }
+        else if (kind == 1)
+        {
+            p["flt_cutoff"] = range (5500.0f, 9000.0f, 3000.0f, 12000.0f, true);
+            p["e1_d"] = range (260.0f, 650.0f, 150.0f, 1100.0f, true);
+            p["e1_r"] = range (150.0f, 350.0f, 80.0f, 600.0f, true);
+        }
+        else
+        {
+            p["noise_level"] = range (0.6f, 1.0f, 0.3f, 1.0f);
+            p["flt_type"] = pick ({ 2, 3 }, { 2, 3, 4 });
+            p["flt_cutoff"] = range (3500.0f, 6500.0f, 1800.0f, 9000.0f, true);
+            p["flt_env"] = range (0.1f, 0.3f, 0.0f, 0.5f);
+            p["e2_d"] = range (150.0f, 400.0f, 60.0f, 900.0f, true);
+            p["e1_d"] = range (1400.0f, 3200.0f, 700.0f, 5000.0f, true);
+            p["e1_r"] = range (500.0f, 1200.0f, 250.0f, 2500.0f, true);
+            p["a_uni"] = pick ({ 3 }, { 1, 3, 5 }); p["a_detune"] = range (0.2f, 0.5f, 0.0f, 0.8f); p["a_width"] = 0.8f;
+            p["cho_on"] = chance (0.4f, 0.6f) ? 1.0f : 0.0f; p["cho_mix"] = range (0.2f, 0.4f, 0.1f, 0.6f);
+            p["rev_on"] = chance (0.5f, 0.7f) ? 1.0f : 0.0f; p["rev_size"] = range (0.5f, 0.8f, 0.3f, 0.95f); p["rev_mix"] = range (0.1f, 0.2f, 0.05f, 0.35f);
+        }
+        p["dist_on"] = chance (0.2f, 0.5f) ? 1.0f : 0.0f;
+        p["dist_type"] = pick ({ 0, 1 }, { 0, 1, 2, 3 });
+        p["dist_drive"] = range (0.1f, 0.3f, 0.05f, 0.6f);
+        p["dist_tone"] = range (0.8f, 1.0f, 0.5f, 1.0f);
+    }
+
+    void perc (Patch& p)
+    {
+        const int kind = (int) pickf ({ 0, 1, 2, 3 });   // 0 rim/wood, 1 tom/bongo, 2 cowbell/bell, 3 zap blip
+        p["a_wave"] = kind == 2 ? range (2.8f, 3.4f, 1.0f, 6.0f) : range (0.0f, 1.0f, 0.0f, 3.0f);
+        p["a_oct"] = kind == 1 ? 0.0f : pickf ({ 1, 2 });
+        p["a_semi"] = std::round (range (-5.0f, 7.0f, -12.0f, 12.0f));
+        p["a_level"] = 0.85f;
+        if (kind == 2 || chance (0.2f, 0.4f))
+        {
+            p["b_on"] = 1; p["b_wave"] = p["a_wave"]; p["b_oct"] = p["a_oct"];
+            p["b_semi"] = pickf ({ 5, 7, 8, 11 }); p["b_fine"] = range (-30.0f, 30.0f, -80.0f, 80.0f); p["b_level"] = 0.7f;
+            p["ring"] = kind == 2 ? range (0.2f, 0.6f, 0.0f, 1.0f) : range (0.0f, 0.4f, 0.0f, 1.0f);
+        }
+        p["noise_level"] = range (0.1f, 0.35f, 0.0f, 0.7f);
+        p["noise_color"] = range (0.6f, 1.0f, 0.3f, 1.0f);
+        p["noise_decay"] = range (5.0f, 25.0f, 2.0f, 80.0f, true);
+        p["flt_type"] = pick ({ 0, 4, 1 }, { 0, 1, 2, 4 });
+        p["flt_cutoff"] = range (2500.0f, 9000.0f, 800.0f, 18000.0f, true);
+        p["flt_res"] = range (0.1f, 0.4f, 0.0f, 0.75f);
+        p["flt_env"] = range (0.0f, 0.4f, -0.3f, 0.8f);
+        p["e2_d"] = range (20.0f, 80.0f, 10.0f, 200.0f, true);
+        p["e1_d"] = kind == 1 ? range (150.0f, 380.0f, 80.0f, 700.0f, true) : range (50.0f, 180.0f, 25.0f, 400.0f, true);
+        p["e1_r"] = range (40.0f, 120.0f, 20.0f, 300.0f, true);
+        p["penv_amt"] = kind == 3 ? range (18.0f, 36.0f, 8.0f, 48.0f) : range (2.0f, 12.0f, -12.0f, 24.0f);
+        p["penv_decay"] = range (8.0f, 40.0f, 4.0f, 120.0f, true);
+        p["dist_on"] = chance (0.3f, 0.6f) ? 1.0f : 0.0f;
+        p["dist_type"] = pick ({ 0, 1 }, { 0, 1, 2, 3 });
+        p["dist_drive"] = range (0.15f, 0.4f, 0.05f, 0.8f);
+        p["dly_on"] = chance (0.15f, 0.4f) ? 1.0f : 0.0f; p["dly_div"] = pick ({ 5, 6 }, { 2, 4, 5, 6, 8 }); p["dly_mix"] = range (0.1f, 0.2f, 0.05f, 0.35f);
+        p["rev_on"] = chance (0.35f, 0.6f) ? 1.0f : 0.0f; p["rev_size"] = range (0.4f, 0.7f, 0.2f, 0.9f); p["rev_mix"] = range (0.08f, 0.2f, 0.05f, 0.35f);
+    }
+
+    void snap (Patch& p)
+    {
+        p["a_wave"] = 0; p["a_oct"] = 2; p["a_semi"] = std::round (range (0.0f, 9.0f, -6.0f, 12.0f));
+        p["a_level"] = range (0.15f, 0.35f, 0.0f, 0.6f);
+        p["penv_amt"] = range (12.0f, 24.0f, 0.0f, 36.0f); p["penv_decay"] = range (4.0f, 12.0f, 2.0f, 30.0f);
+        p["noise_level"] = 1.0f;
+        p["noise_color"] = range (0.75f, 1.0f, 0.5f, 1.0f);
+        p["burst"] = pick ({ 1, 1, 2 }, { 0, 1, 2, 3 });
+        p["burst_gap"] = range (4.0f, 8.0f, 3.0f, 14.0f);
+        p["flt_type"] = 4;
+        p["flt_cutoff"] = range (1600.0f, 3200.0f, 900.0f, 5500.0f, true);
+        p["flt_res"] = range (0.3f, 0.6f, 0.1f, 0.8f);
+        p["e1_d"] = range (45.0f, 110.0f, 25.0f, 220.0f, true);
+        p["e1_r"] = range (40.0f, 90.0f, 20.0f, 200.0f, true);
+        p["dist_on"] = chance (0.2f, 0.5f) ? 1.0f : 0.0f; p["dist_drive"] = range (0.1f, 0.3f, 0.05f, 0.6f);
+        p["rev_on"] = chance (0.75f, 0.8f) ? 1.0f : 0.0f;
+        p["rev_size"] = range (0.4f, 0.75f, 0.2f, 0.95f);
+        p["rev_mix"] = range (0.15f, 0.3f, 0.05f, 0.45f);
+    }
+
+    void subBass (Patch& p)
+    {
+        p["one_shot"] = 0;
+        p["a_wave"] = range (0.0f, 0.15f, 0.0f, 0.8f);
+        p["a_oct"] = -1;
+        p["sub_level"] = range (0.15f, 0.4f, 0.0f, 0.6f);
+        p["sub_shape"] = range (0.0f, 0.1f, 0.0f, 0.4f);
+        p["flt_type"] = pick ({ 0, 1 }, { 0, 1 });
+        p["flt_cutoff"] = range (350.0f, 1200.0f, 150.0f, 4000.0f, true);
+        p["flt_res"] = range (0.0f, 0.15f, 0.0f, 0.4f);
+        p["flt_drive"] = range (0.0f, 0.25f, 0.0f, 0.6f);
+        p["flt_env"] = range (0.0f, 0.2f, 0.0f, 0.5f);
+        p["e1_a"] = range (2.0f, 12.0f, 0.0f, 60.0f);
+        p["e1_d"] = range (600.0f, 1500.0f, 300.0f, 3000.0f, true);
+        p["e1_s"] = range (0.75f, 1.0f, 0.4f, 1.0f);
+        p["e1_r"] = range (120.0f, 350.0f, 60.0f, 800.0f, true);
+        p["e2_d"] = range (100.0f, 300.0f, 50.0f, 800.0f, true);
+        p["penv_amt"] = range (0.0f, 3.0f, 0.0f, 12.0f); p["penv_decay"] = range (15.0f, 40.0f, 8.0f, 90.0f);
+        p["voice_mode"] = 2;
+        p["glide"] = range (40.0f, 120.0f, 15.0f, 300.0f);
+        p["vel_sens"] = 0.2f;
+        p["dist_on"] = chance (0.5f, 0.8f) ? 1.0f : 0.0f;
+        p["dist_type"] = 0;
+        p["dist_drive"] = range (0.05f, 0.25f, 0.0f, 0.55f);
+        p["dist_tone"] = range (0.3f, 0.6f, 0.2f, 0.9f);
+        p["dist_mix"] = range (0.4f, 0.8f, 0.2f, 1.0f);
+        p["lfo_dest"] = 4; p["lfo_sync"] = 1; p["lfo_div"] = pick ({ 7, 9 }, { 4, 7, 9 });
+        p["lfo_amt"] = chance (0.0f, 0.3f) ? range (0.2f, 0.5f, 0.1f, 0.8f) : 0.0f;   // optional wobble
+    }
+
+    void percLoop (Patch& p)
+    {
+        perc (p);
+        p["seq_on"] = 1;
+        p["seq_rate"] = pick ({ 1, 1, 1, 2 }, { 0, 1, 2, 3 });
+        const float density = range (0.35f, 0.6f, 0.2f, 0.85f);
+        int pat = 1;                                             // always hit the downbeat
+        for (int i = 1; i < 16; ++i)
+        {
+            const float bias = (i % 4 == 0) ? 0.25f : ((i % 2 == 0) ? 0.08f : -0.05f);
+            if (rnd() < density + bias) pat |= 1 << i;
+        }
+        p["seq_pat"] = (float) pat;
+        p["seq_vary"] = range (0.3f, 0.7f, 0.1f, 1.0f);
+        p["seq_swing"] = chance (0.4f, 0.5f) ? range (0.1f, 0.35f, 0.0f, 0.6f) : 0.0f;
+        p["e1_d"] = range (40.0f, 150.0f, 20.0f, 300.0f, true);
+        p["noise_level"] = range (0.2f, 0.6f, 0.05f, 1.0f);       // foley grit
+        p["noise_decay"] = range (10.0f, 60.0f, 3.0f, 150.0f, true);
+        p["flt_type"] = pick ({ 4, 0 }, { 0, 2, 4 });
+        p["flt_cutoff"] = range (900.0f, 5000.0f, 400.0f, 12000.0f, true);
+        p["flt_res"] = range (0.2f, 0.5f, 0.0f, 0.8f);
+        p["dly_on"] = chance (0.35f, 0.6f) ? 1.0f : 0.0f;
+    }
+
+    void fx (Patch& p)
+    {
+        const int kind = (int) pickf ({ 0, 1, 2, 3 });   // 0 riser, 1 downlifter, 2 laser zap, 3 impact boom
+        p["one_shot"] = 1;
+        p["a_wave"] = range (1.5f, 3.0f, 0.0f, 7.0f);
+        p["a_uni"] = pick ({ 3, 5 }, { 1, 3, 5, 7 }); p["a_detune"] = range (0.2f, 0.5f, 0.0f, 0.9f); p["a_width"] = 0.9f;
+        p["noise_level"] = range (0.2f, 0.5f, 0.0f, 0.9f); p["noise_color"] = range (0.5f, 1.0f, 0.2f, 1.0f);
+        p["flt_type"] = pick ({ 1, 4 }, { 0, 1, 3, 4 });
+        p["flt_res"] = range (0.2f, 0.5f, 0.0f, 0.8f);
+        p["dly_on"] = 1; p["dly_div"] = pick ({ 6, 8 }, { 4, 5, 6, 8, 9 }); p["dly_fb"] = range (0.3f, 0.55f, 0.15f, 0.75f); p["dly_mix"] = range (0.15f, 0.3f, 0.1f, 0.45f);
+        p["rev_on"] = 1; p["rev_size"] = range (0.75f, 0.95f, 0.5f, 1.0f); p["rev_mix"] = range (0.25f, 0.45f, 0.15f, 0.6f);
+        p["dist_on"] = chance (0.4f, 0.7f) ? 1.0f : 0.0f; p["dist_drive"] = range (0.15f, 0.4f, 0.05f, 0.8f);
+        if (kind == 0)
+        {   // riser: pitch climbs into the note, filter opens
+            p["penv_amt"] = -range (12.0f, 24.0f, 6.0f, 24.0f); p["penv_decay"] = range (500.0f, 1000.0f, 250.0f, 1000.0f);
+            p["e1_a"] = range (900.0f, 2200.0f, 400.0f, 4000.0f, true); p["e1_d"] = 400; p["e1_s"] = 0.0f; p["e1_r"] = 300;
+            p["flt_cutoff"] = range (300.0f, 900.0f, 150.0f, 2000.0f, true); p["flt_env"] = range (0.5f, 0.9f, 0.3f, 1.0f);
+            p["e2_a"] = p["e1_a"]; p["e2_d"] = 500; p["e2_s"] = 0.0f;
+        }
+        else if (kind == 1)
+        {   // downlifter: starts high, falls, filter closes
+            p["penv_amt"] = range (12.0f, 36.0f, 6.0f, 48.0f); p["penv_decay"] = range (500.0f, 1000.0f, 250.0f, 1000.0f);
+            p["e1_d"] = range (1200.0f, 2600.0f, 600.0f, 4500.0f, true); p["e1_r"] = 600;
+            p["flt_cutoff"] = range (600.0f, 2000.0f, 300.0f, 5000.0f, true); p["flt_env"] = range (0.4f, 0.8f, 0.2f, 1.0f);
+            p["e2_d"] = range (600.0f, 1500.0f, 300.0f, 3000.0f, true);
+        }
+        else if (kind == 2)
+        {   // laser / zap
+            p["a_uni"] = 1; p["noise_level"] = range (0.0f, 0.15f, 0.0f, 0.4f);
+            p["a_oct"] = pickf ({ 1, 2 });
+            p["penv_amt"] = range (24.0f, 48.0f, 12.0f, 48.0f); p["penv_decay"] = range (60.0f, 220.0f, 25.0f, 500.0f, true);
+            p["e1_d"] = range (250.0f, 700.0f, 120.0f, 1500.0f, true); p["e1_r"] = 200;
+            p["flt_cutoff"] = range (2500.0f, 9000.0f, 1000.0f, 20000.0f, true); p["flt_env"] = range (0.0f, 0.3f, -0.3f, 0.6f);
+            p["lfo_dest"] = 0; p["lfo_rate"] = range (8.0f, 18.0f, 3.0f, 20.0f); p["lfo_amt"] = chance (0.3f, 0.6f) ? range (0.1f, 0.3f, 0.05f, 0.5f) : 0.0f;
+        }
+        else
+        {   // impact: low boom + noise blast into a big room
+            p["a_wave"] = range (0.0f, 0.4f, 0.0f, 1.5f); p["a_uni"] = 1; p["a_oct"] = -1; p["a_semi"] = std::round (range (-7.0f, 0.0f, -12.0f, 5.0f));
+            p["penv_amt"] = range (24.0f, 40.0f, 12.0f, 48.0f); p["penv_decay"] = range (80.0f, 250.0f, 40.0f, 500.0f, true);
+            p["noise_decay"] = range (200.0f, 700.0f, 80.0f, 1500.0f, true); p["noise_level"] = range (0.3f, 0.7f, 0.1f, 1.0f);
+            p["e1_d"] = range (900.0f, 2000.0f, 500.0f, 4000.0f, true); p["e1_r"] = 600;
+            p["flt_type"] = 0; p["flt_cutoff"] = range (2000.0f, 7000.0f, 800.0f, 15000.0f, true); p["flt_res"] = 0.1f;
+            p["dly_on"] = 0; p["dist_on"] = 1; p["dist_drive"] = range (0.25f, 0.5f, 0.1f, 0.85f);
+        }
+    }
+
+    void vox (Patch& p)
+    {
+        const int kind = (int) pickf ({ 0, 0, 1, 2 });   // 0 "hey"/"ay" shout, 1 "oh"/"ah" chant, 2 sliding "ay-oh"
+        p["one_shot"] = 1;
+        p["vox_on"] = 1; p["vox_mix"] = range (0.85f, 1.0f, 0.6f, 1.0f);
+        p["a_wave"] = range (1.8f, 2.4f, 1.0f, 4.0f);                  // saw-like glottal buzz
+        p["a_uni"] = pick ({ 3, 5 }, { 1, 3, 5, 7 }); p["a_detune"] = range (0.08f, 0.22f, 0.0f, 0.45f); p["a_width"] = range (0.6f, 1.0f, 0.2f, 1.0f);
+        p["b_on"] = chance (0.5f, 0.6f) ? 1.0f : 0.0f; p["b_wave"] = 2.0f; p["b_oct"] = pick ({ -1, 1 }, { -1, 0, 1 }); p["b_uni"] = 3; p["b_detune"] = 0.2f; p["b_level"] = range (0.2f, 0.4f, 0.1f, 0.6f);
+        p["flt_type"] = 0; p["flt_cutoff"] = range (3500.0f, 8000.0f, 1800.0f, 14000.0f, true); p["flt_key"] = 0.0f;
+        p["noise_level"] = range (0.25f, 0.5f, 0.1f, 0.8f); p["noise_color"] = range (0.6f, 0.9f, 0.4f, 1.0f);   // the "h" breath
+        p["noise_decay"] = range (25.0f, 70.0f, 10.0f, 150.0f, true);
+        p["lfo_dest"] = 0; p["lfo_shape"] = 0; p["lfo_rate"] = range (4.5f, 6.0f, 3.0f, 7.5f); p["lfo_amt"] = range (0.0f, 0.08f, 0.0f, 0.15f);
+        p["cho_on"] = chance (0.6f, 0.7f) ? 1.0f : 0.0f; p["cho_mix"] = range (0.25f, 0.45f, 0.1f, 0.6f);
+        p["dly_on"] = chance (0.5f, 0.7f) ? 1.0f : 0.0f; p["dly_div"] = pick ({ 6, 8 }, { 4, 5, 6, 8, 9 }); p["dly_mix"] = range (0.12f, 0.25f, 0.05f, 0.4f);
+        p["rev_on"] = 1; p["rev_size"] = range (0.55f, 0.85f, 0.3f, 0.97f); p["rev_mix"] = range (0.18f, 0.35f, 0.1f, 0.5f);
+        p["dist_on"] = chance (0.3f, 0.6f) ? 1.0f : 0.0f; p["dist_drive"] = range (0.1f, 0.3f, 0.05f, 0.6f); p["dist_mix"] = 0.5f;
+        if (kind == 0)
+        {   // "hey"/"ay": E -> A open, punchy, scoop up in pitch
+            p["vox_vowel"] = range (0.9f, 1.3f, 0.5f, 2.0f); p["vox_env"] = -range (0.15f, 0.25f, 0.05f, 0.4f);
+            p["e2_a"] = range (60.0f, 140.0f, 30.0f, 250.0f); p["e2_d"] = 400; p["e2_s"] = 1.0f;
+            p["e1_a"] = range (4.0f, 15.0f, 1.0f, 30.0f); p["e1_d"] = range (220.0f, 420.0f, 150.0f, 700.0f, true); p["e1_s"] = 0.0f; p["e1_r"] = 150;
+            p["penv_amt"] = -range (2.0f, 5.0f, 0.0f, 9.0f); p["penv_decay"] = range (50.0f, 120.0f, 25.0f, 250.0f);
+        }
+        else if (kind == 1)
+        {   // "oh"/"ah" chant: held vowel
+            p["vox_vowel"] = pickf ({ 0.0f, 3.0f, 3.2f, 0.3f }); p["vox_env"] = range (-0.05f, 0.05f, -0.2f, 0.2f);
+            p["e1_a"] = range (15.0f, 50.0f, 5.0f, 120.0f); p["e1_d"] = range (500.0f, 900.0f, 300.0f, 1500.0f, true); p["e1_s"] = range (0.0f, 0.3f, 0.0f, 0.6f); p["e1_r"] = 300;
+            p["noise_level"] = range (0.05f, 0.15f, 0.0f, 0.3f);
+            p["lfo_amt"] = range (0.04f, 0.1f, 0.0f, 0.18f);
+        }
+        else
+        {   // "ay-oh": vowel glides A -> O over the note
+            p["vox_vowel"] = range (0.0f, 0.3f, 0.0f, 1.0f); p["vox_env"] = range (0.6f, 0.75f, 0.3f, 1.0f);
+            p["e2_a"] = range (180.0f, 350.0f, 80.0f, 600.0f); p["e2_d"] = 400; p["e2_s"] = 1.0f;
+            p["e1_a"] = range (8.0f, 25.0f, 2.0f, 60.0f); p["e1_d"] = range (500.0f, 900.0f, 300.0f, 1400.0f, true); p["e1_s"] = 0.0f; p["e1_r"] = 250;
+            p["penv_amt"] = range (0.0f, 2.0f, -3.0f, 5.0f); p["penv_decay"] = 200.0f;
+        }
     }
 };
 } // namespace xs

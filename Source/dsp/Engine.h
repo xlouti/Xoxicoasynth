@@ -48,6 +48,9 @@ public:
         pYOn = g ("dly_on"); pYDiv = g ("dly_div"); pYFb = g ("dly_fb"); pYTone = g ("dly_tone"); pYMix = g ("dly_mix"); pYPP = g ("dly_pp");
         pROn = g ("rev_on"); pRSize = g ("rev_size"); pRDamp = g ("rev_damp"); pRWidth = g ("rev_width"); pRMix = g ("rev_mix");
         pVol = g ("master_vol"); pLim = g ("limiter");
+        pNDecay = g ("noise_decay"); pRing = g ("ring"); pBurst = g ("burst"); pBurstGap = g ("burst_gap"); pOneShot = g ("one_shot");
+        pVoxOn = g ("vox_on"); pVowel = g ("vox_vowel"); pVoxEnv = g ("vox_env"); pVoxMix = g ("vox_mix");
+        pSeqOn = g ("seq_on"); pSeqPat = g ("seq_pat"); pSeqRate = g ("seq_rate"); pSeqVary = g ("seq_vary"); pSeqSwing = g ("seq_swing"); pBoost = g ("boost");
     }
 
     void prepare (double sampleRate, int maxBlock)
@@ -99,6 +102,7 @@ public:
     {
         for (auto& v : voices) hard ? v.kill() : v.release();
         heldNotes.clear();
+        seqActive = false;
     }
 
     void noteOn (int noteNum, float velocity)
@@ -107,15 +111,14 @@ public:
         const bool anyActive = std::any_of (std::begin (voices), std::end (voices), [] (auto& v) { return v.isActive(); });
         if (! anyActive) lfoPhase = 0.0;  // free LFO restarts with a phrase
         refreshCtrl();
+        if (*pSeqOn > 0.5f)
+        {   // loop mode: the held note drives a tempo-synced pattern (triggered from render)
+            seqActive = true; seqNote = noteNum; seqVel = velocity; seqPos = 0.0; seqNext = 0;
+            return;
+        }
         if (mode == 0)
         {
-            Voice* v = nullptr;
-            for (auto& x : voices) if (x.note == noteNum && x.isActive()) { v = &x; break; }       // same note retrigger
-            if (! v) for (auto& x : voices) if (! x.isActive()) { v = &x; break; }
-            if (! v) { uint64_t best = UINT64_MAX; for (auto& x : voices) if (x.isReleasing() && x.age < best) { best = x.age; v = &x; } }
-            if (! v) { uint64_t best = UINT64_MAX; for (auto& x : voices) if (x.age < best) { best = x.age; v = &x; } }
-            v->age = ++ageCounter;
-            v->start (noteNum, velocity, -1.0f, false, true, ctrl, (uint32_t) (ageCounter * 2654435761u));
+            startPoly (noteNum, velocity);
             return;
         }
         // mono / legato: one voice, note stack, glide
@@ -131,9 +134,31 @@ public:
         lastPitch = (float) noteNum;
     }
 
+    void startPoly (int noteNum, float velocity)
+    {
+        {
+            Voice* v = nullptr;
+            for (auto& x : voices) if (x.note == noteNum && x.isActive()) { v = &x; break; }       // same note retrigger
+            if (! v) for (auto& x : voices) if (! x.isActive()) { v = &x; break; }
+            if (! v) { uint64_t best = UINT64_MAX; for (auto& x : voices) if (x.isReleasing() && x.age < best) { best = x.age; v = &x; } }
+            if (! v) { uint64_t best = UINT64_MAX; for (auto& x : voices) if (x.age < best) { best = x.age; v = &x; } }
+            v->age = ++ageCounter;
+            v->start (noteNum, velocity, -1.0f, false, true, ctrl, (uint32_t) (ageCounter * 2654435761u));
+            if (*pOneShot > 0.5f) v->setAutoRelease (ctrl);
+        }
+    }
+
     void noteOff (int noteNum)
     {
         const int mode = (int) *pMode;
+        const bool oneShot = *pOneShot > 0.5f;
+        if (seqActive && noteNum == seqNote)
+        {
+            seqActive = false;
+            if (! oneShot) for (auto& v : voices) if (! v.isReleasing()) v.release();
+            return;
+        }
+        if (oneShot && mode == 0) return;   // drums ring out no matter how short the MIDI note is
         if (mode == 0)
         {
             for (auto& v : voices) if (v.note == noteNum && ! v.isReleasing()) v.release();
@@ -167,6 +192,7 @@ public:
             const int n = juce::jmin (VoiceCtrl::kMax, num - pos);
             refreshCtrl();
             fillSmoothed (n);
+            runSequencer (n);
             for (auto& v : voices)
                 if (v.isActive())
                 {
@@ -175,7 +201,7 @@ public:
                 }
         }
         // voice headroom
-        out.applyGain (start, num, 0.32f);
+        out.applyGain (start, num, 0.32f * juce::Decibels::decibelsToGain ((float) *pBoost));
         if (R) processFx (L, R, num);
     }
 
@@ -196,6 +222,10 @@ private:
 
     Voice voices[kVoices];
     VoiceCtrl ctrl;
+    std::atomic<float> *pNDecay, *pRing, *pBurst, *pBurstGap, *pOneShot, *pVoxOn, *pVowel, *pVoxEnv, *pVoxMix;
+    std::atomic<float> *pBoost = nullptr;
+    std::atomic<float> *pSeqOn, *pSeqPat, *pSeqRate, *pSeqVary, *pSeqSwing;
+    bool seqActive = false; int seqNote = 60; float seqVel = 1.0f; double seqPos = 0.0; int64_t seqNext = 0;
     juce::Array<int> heldNotes;
     float lastPitch = -1.0f, bendNorm = 0.0f;
     uint64_t ageCounter = 0;
@@ -232,6 +262,45 @@ private:
         c.bendSemis = bendNorm * (float) *pBend;
         c.velSens = *pVel;
         for (int i = 0; i < 4; ++i) { c.aEnv[i] = *pE1[i]; c.mEnv[i] = *pE2[i]; }
+        c.noiseDecay = *pNDecay; c.ring = *pRing; c.burst = juce::jlimit (0, 6, (int) *pBurst); c.burstGap = *pBurstGap;
+        c.voxOn = *pVoxOn > 0.5f; c.vowel = *pVowel; c.voxEnv = *pVoxEnv; c.voxMix = *pVoxMix;
+    }
+
+public:
+    // Loop step length in samples at the current tempo (16 steps = one loop).
+    double seqStepSamples() const noexcept { return 60.0 / bpm * seqRateBeats[juce::jlimit (0, 3, (int) *pSeqRate)] * sr; }
+    static float seqHash (int step, int salt) noexcept
+    {
+        uint32_t h = (uint32_t) step * 2654435761u ^ (uint32_t) salt * 40503u;
+        h ^= h >> 15; h *= 2246822519u; h ^= h >> 13; h *= 3266489917u; h ^= h >> 16;
+        return (float) (h & 0xffffff) / 16777216.0f;
+    }
+
+private:
+    void runSequencer (int n) noexcept
+    {
+        if (! seqActive) return;
+        if (*pSeqOn < 0.5f) { seqActive = false; return; }
+        const double step = seqStepSamples();
+        const double swing = (double) *pSeqSwing * 0.5 * step;
+        const int pat = (int) *pSeqPat;
+        const float vary = *pSeqVary;
+        for (;;)
+        {
+            const double at = (double) seqNext * step + ((seqNext & 1) ? swing : 0.0);
+            if (at >= seqPos + n) break;
+            const int idx = (int) (seqNext % 16);
+            if ((pat >> idx) & 1)
+            {
+                // per-step variation is deterministic, so the loop repeats exactly
+                const float h1 = seqHash (idx, pat), h2 = seqHash (idx + 101, pat);
+                const int semis = juce::roundToInt ((h1 - 0.5f) * vary * 14.0f);
+                const float accent = (idx % 4 == 0) ? 1.0f : 1.0f - vary * 0.55f * h2;
+                startPoly (juce::jlimit (0, 127, seqNote + semis), juce::jlimit (0.05f, 1.0f, seqVel * accent));
+            }
+            ++seqNext;
+        }
+        seqPos += n;
     }
 
     float lfoValue (double ph) noexcept

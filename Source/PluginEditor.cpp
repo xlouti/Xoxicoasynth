@@ -55,6 +55,49 @@ XoxicoaSynthEditor::XoxicoaSynthEditor (XoxicoaSynthProcessor& p)
     tog ("rev_on"); knob ("rev_size", "Size"); knob ("rev_damp", "Damp"); knob ("rev_width", "Width"); knob ("rev_mix", "Mix");
 
     knob ("master_vol", "Master"); tog ("limiter", "Limit");
+    // drum / vox / loop engine
+    knob ("noise_decay", "Noise Dec"); knob ("ring", "Ring"); knob ("burst_gap", "Clap Gap"); knob ("boost", "Boost"); sel ("burst", "Claps"); tog ("one_shot", "One Shot");
+    tog ("vox_on"); knob ("vox_vowel", "Vowel"); knob ("vox_env", "Vowel Env"); knob ("vox_mix", "Mix");
+    tog ("seq_on"); sel ("seq_rate", "Rate"); knob ("seq_vary", "Vary"); knob ("seq_swing", "Swing");
+    sel ("exp_note", "Note"); sel ("exp_bpm", "BPM");
+    stepGrid = std::make_unique<StepGrid> (*p.apvts.getParameter ("seq_pat"));
+    addAndMakeVisible (*stepGrid);
+    addAndMakeVisible (waveTile);
+    waveTile.onPlay = [this] { audition(); };
+    waveTile.onDragFile = [this]
+    {
+        auto f = proc.saveWav();
+        setStatus (f.existsAsFile() ? "Dragged: " + f.getFileName() : proc.lastExportError);
+        return f;
+    };
+    for (auto* b : { &playBtn, &wavBtn, &gen10Btn, &folderBtn }) addAndMakeVisible (*b);
+    playBtn.setTooltip ("Play the current sound (same as the Note key on your MIDI keyboard)");
+    wavBtn.setTooltip ("Save a 24-bit 44.1 kHz WAV to Music/Xoxicoa Kit Gen/<type>");
+    gen10Btn.setTooltip ("Generate and save 10 new variations of the selected type");
+    folderBtn.setTooltip ("Show the Xoxicoa Kit Gen folder");
+    playBtn.onClick = [this] { audition(); };
+    wavBtn.onClick = [this]
+    {
+        auto f = proc.saveWav();
+        setStatus (f.existsAsFile() ? "Saved: " + f.getFileName() : proc.lastExportError);
+    };
+    gen10Btn.onClick = [this]
+    {
+        setStatus ("Generating 10...");
+        juce::MouseCursor::showWaitCursor();
+        const auto files = proc.generateBatch (10);
+        juce::MouseCursor::hideWaitCursor();
+        setStatus (files.isEmpty() ? proc.lastExportError
+                                   : "Saved " + juce::String (files.size()) + " to Kit Gen/" + files.getLast().getParentDirectory().getFileName());
+        refreshPreview (true);
+        audition();
+    };
+    folderBtn.onClick = [this]
+    {
+        auto dir = XoxicoaSynthProcessor::kitRoot().getChildFile (XoxicoaSynthProcessor::folderFor (proc.currentType()));
+        dir.createDirectory();
+        dir.revealToUser();
+    };
     sel ("gen_cat"); knob ("gen_wild", "Wild");
 
     scope = std::make_unique<Scope> (p.engine.scope);
@@ -69,7 +112,7 @@ XoxicoaSynthEditor::XoxicoaSynthEditor (XoxicoaSynthProcessor& p)
     prevBtn.onClick = [this] { proc.stepPreset (-1); };
     nextBtn.onClick = [this] { proc.stepPreset (1); };
     presetBtn.onClick = [this] { showPresetMenu(); };
-    generateBtn.onClick = [this] { proc.generate(); };
+    generateBtn.onClick = [this] { proc.generate(); refreshPreview (true); audition(); };
     saveBtn.onClick = [this]
     {
         chooser = std::make_unique<juce::FileChooser> ("Save preset", XoxicoaSynthProcessor::userPresetDir()
@@ -109,12 +152,40 @@ XoxicoaSynthEditor::XoxicoaSynthEditor (XoxicoaSynthProcessor& p)
         { "VOICE", { 12, 440, 230, 132 }, "" },        { "DISTORTION", { 250, 440, 240, 132 }, "dist_on" },
         { "CHORUS", { 498, 440, 190, 132 }, "cho_on" }, { "DELAY", { 696, 440, 270, 132 }, "dly_on" },
         { "REVERB", { 974, 440, 254, 132 }, "rev_on" },
+        { "DRUM", { 12, 580, 300, 132 }, "" },          { "VOX FORMANT", { 320, 580, 232, 132 }, "vox_on" },
+        { "LOOP", { 560, 580, 356, 132 }, "seq_on" },   { "EXPORT", { 924, 580, 304, 132 }, "" },
     };
 
     proc.onPresetChanged = [this] { juce::MessageManager::callAsync ([safe = juce::Component::SafePointer<XoxicoaSynthEditor> (this)] { if (safe) safe->updatePresetLabel(); }); };
     updatePresetLabel();
     setSize (kW, kH);
     startTimerHz (10);
+    refreshPreview (true);
+}
+
+void XoxicoaSynthEditor::audition()
+{
+    const int note = proc.exportNote();
+    const int token = ++auditionToken;
+    proc.keyboardState.noteOff (1, note, 0.0f);
+    proc.keyboardState.noteOn (1, note, 1.0f);
+    const bool loop = proc.apvts.getRawParameterValue ("seq_on")->load() > 0.5f;
+    const int ms = (int) (proc.holdSeconds() * (loop ? 2000.0 : 1000.0));
+    juce::Timer::callAfterDelay (juce::jmax (60, ms), [safe = juce::Component::SafePointer<XoxicoaSynthEditor> (this), note, token]
+    {
+        if (safe && safe->auditionToken == token) safe->proc.keyboardState.noteOff (1, note, 0.0f);
+    });
+}
+
+void XoxicoaSynthEditor::refreshPreview (bool force)
+{
+    const auto h = proc.soundHash();
+    if (h != previewHash) { previewHash = h; previewWait = 3; if (! force) return; }
+    if (force || (previewWait > 0 && --previewWait == 0))
+    {
+        previewWait = 0;
+        waveTile.setBuffer (proc.renderCurrent());
+    }
 }
 
 XoxicoaSynthEditor::~XoxicoaSynthEditor()
@@ -151,7 +222,8 @@ void XoxicoaSynthEditor::updatePresetLabel()
 void XoxicoaSynthEditor::timerCallback()
 {
     if (shownName != proc.presetName) updatePresetLabel();
-    repaint (0, 60, getWidth(), 520);  // panel titles follow their on/off switches
+    repaint (0, 60, getWidth(), 600);  // panel titles follow their on/off switches
+    refreshPreview();
 }
 
 void XoxicoaSynthEditor::showPresetMenu()
@@ -160,6 +232,7 @@ void XoxicoaSynthEditor::showPresetMenu()
     const auto& f = xs::factoryPresets();
     for (int c = 0; c < xs::categories.size(); ++c)
     {
+        if (std::none_of (f.begin(), f.end(), [c] (const xs::Preset& pr) { return pr.category == c; })) continue;
         juce::PopupMenu sub;
         for (int i = 0; i < (int) f.size(); ++i)
             if (f[(size_t) i].category == c)
@@ -212,6 +285,9 @@ void XoxicoaSynthEditor::paint (juce::Graphics& g)
         const int titleX = p.toggleId.isNotEmpty() ? 32 : 10;
         g.drawText (p.title, p.bounds.getX() + titleX, p.bounds.getY() + 6, p.bounds.getWidth() - titleX - 10, 16, juce::Justification::centredLeft);
     }
+    g.setColour (col::mid);
+    g.setFont (font (10.5f));
+    g.drawText (status, 934, 668, 284, 14, juce::Justification::centredLeft, true);
 }
 
 void XoxicoaSynthEditor::resized()
@@ -297,8 +373,32 @@ void XoxicoaSynthEditor::resized()
     place ("rev_on", { 984, 445, 18, 18 });
     knobRow ({ "rev_size", "rev_damp", "rev_width", "rev_mix" }, 984, 480, 59);
 
+    // drum
+    place ("burst", { 76, 584, 120, 18 });
+    if (auto* s = dynamic_cast<Selector*> (byId["burst"])) s->labelW = 44;
+    place ("one_shot", { 214, 584, 92, 18 });
+    knobRow ({ "noise_decay", "ring", "burst_gap", "boost" }, 24, 620, 70);
+    // vox
+    place ("vox_on", { 330, 585, 18, 18 });
+    knobRow ({ "vox_vowel", "vox_env", "vox_mix" }, 330, 620, 70);
+    // loop
+    place ("seq_on", { 570, 585, 18, 18 });
+    stepGrid->setBounds (570, 608, 336, 22);
+    place ("seq_rate", { 570, 656, 120, 20 });
+    if (auto* s = dynamic_cast<Selector*> (byId["seq_rate"])) s->labelW = 36;
+    knobRow ({ "seq_vary", "seq_swing" }, 730, 636, 70);
+    // export
+    waveTile.setBounds (934, 604, 140, 60);
+    playBtn.setBounds (1080, 604, 66, 26);
+    wavBtn.setBounds (1150, 604, 68, 26);
+    gen10Btn.setBounds (1080, 636, 66, 26);
+    folderBtn.setBounds (1150, 636, 68, 26);
+    place ("exp_note", { 934, 686, 136, 20 });
+    place ("exp_bpm", { 1080, 686, 138, 20 });
+    for (auto id : { "exp_note", "exp_bpm" }) if (auto* s = dynamic_cast<Selector*> (byId[id])) s->labelW = 36;
+
     // keyboard
-    keyboard.setBounds (12, 582, getWidth() - 24, 126);
+    keyboard.setBounds (12, 720, getWidth() - 24, 72);
     keyboard.setKeyWidth ((float) (getWidth() - 24) / 50.0f);
 }
 

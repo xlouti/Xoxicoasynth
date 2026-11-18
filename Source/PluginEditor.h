@@ -3,6 +3,7 @@
 #include "ui/XLookAndFeel.h"
 #include "ui/Controls.h"
 #include "ui/Displays.h"
+#include "ui/KitControls.h"
 
 class XoxicoaSynthEditor : public juce::AudioProcessorEditor, private juce::Timer
 {
@@ -12,7 +13,7 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
 
-    static constexpr int kW = 1240, kH = 720;
+    static constexpr int kW = 1240, kH = 800;
 
 private:
     XoxicoaSynthProcessor& proc;
@@ -33,6 +34,17 @@ private:
     juce::MidiKeyboardComponent keyboard;
     std::unique_ptr<juce::FileChooser> chooser;
     juce::String shownName;
+
+    // v1.1 sound types / export
+    std::unique_ptr<xs::ui::StepGrid> stepGrid;
+    xs::ui::WaveTile waveTile;
+    juce::TextButton playBtn { "PLAY" }, wavBtn { "SAVE WAV" }, gen10Btn { "GEN 10" }, folderBtn { "FOLDER" };
+    juce::String status { "Pick a type, hit GENERATE" };
+    juce::int64 previewHash = 0;
+    int previewWait = 0, auditionToken = 0;
+    void audition();
+    void refreshPreview (bool force = false);
+    void setStatus (const juce::String& s) { status = s; repaint (924, 668, 304, 16); }
 
     juce::Component& knob (const char* id, const char* label, bool big = false);
     juce::Component& sel (const char* id, const char* label = "");

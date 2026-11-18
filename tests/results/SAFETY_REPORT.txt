@@ -48,19 +48,31 @@
    Pluck      Sparkle Pluck      rms  -26.14 dB  peak   -0.68 dBFS
 
 == Generator: 60 rolls per category, wildness 0..1
-   Rage Lead  rms range  -34.33 ..  -13.69 dB, worst peak   -1.52 dBFS, unusable rolls: 0/60
-   Plugg Bell rms range  -26.75 ..  -18.77 dB, worst peak   -0.54 dBFS, unusable rolls: 0/60
-   808        rms range  -17.17 ..  -10.68 dB, worst peak   -1.33 dBFS, unusable rolls: 0/60
-   Dark Pad   rms range  -36.91 ..  -17.65 dB, worst peak   -3.18 dBFS, unusable rolls: 0/60
-   Pluck      rms range  -33.49 ..  -18.97 dB, worst peak   -0.50 dBFS, unusable rolls: 0/60
+   Rage Lead  rms range  -26.85 ..  -13.11 dB, worst peak   -0.89 dBFS, unusable rolls: 0/60
+   Plugg Bell rms range  -26.67 ..  -18.67 dB, worst peak   -0.56 dBFS, unusable rolls: 0/60
+   808        rms range  -16.36 ..  -10.58 dB, worst peak   -3.65 dBFS, unusable rolls: 0/60
+   Dark Pad   rms range  -35.95 ..  -18.33 dB, worst peak   -3.23 dBFS, unusable rolls: 0/60
+   Pluck      rms range  -29.78 ..  -20.43 dB, worst peak   -0.50 dBFS, unusable rolls: 0/60
+   Kick       rms range  -19.24 ..  -11.33 dB, worst peak   -1.27 dBFS, unusable rolls: 0/60
+   Snare      rms range  -31.13 ..  -14.61 dB, worst peak   -1.27 dBFS, unusable rolls: 0/60
+   Clap       rms range  -30.01 ..  -13.53 dB, worst peak   -1.27 dBFS, unusable rolls: 0/60
+   Hi Hat     rms range  -27.36 ..  -18.39 dB, worst peak   -1.27 dBFS, unusable rolls: 0/60
+   Open Hat   rms range  -29.82 ..  -18.79 dB, worst peak   -1.27 dBFS, unusable rolls: 0/60
+   Crash      rms range  -25.49 ..  -18.80 dB, worst peak   -1.27 dBFS, unusable rolls: 0/60
+   Perc       rms range  -35.51 ..  -12.19 dB, worst peak   -1.27 dBFS, unusable rolls: 0/60
+   Snap       rms range  -35.82 ..  -18.05 dB, worst peak   -1.27 dBFS, unusable rolls: 0/60
+   Sub Bass   rms range  -10.36 ..   -2.39 dB, worst peak   -1.27 dBFS, unusable rolls: 0/60
+   Perc Loop  rms range  -38.88 ..  -15.47 dB, worst peak   -1.02 dBFS, unusable rolls: 0/60
+   FX         rms range  -34.72 ..  -15.07 dB, worst peak   -1.27 dBFS, unusable rolls: 0/60
+   Vox Chant  rms range  -31.77 ..  -16.93 dB, worst peak   -1.27 dBFS, unusable rolls: 0/60
 
 == Abuse: 100 fully random patches (every param over its full range)
    NaN/Inf renders: 0, renders over ceiling: 0
 
 == CPU (single thread, this Linux box; 10 s renders)
-   Glokk Siren, 1 note                                 1.33 % of one core
-   Glokk Siren, 4-note chord                           2.75 % of one core
-   Glide 808, 1 note                                   0.61 % of one core
-   WORST CASE: 16 voices x (7+7 unison) + sub/noise + all FX9.93 % of one core
+   Glokk Siren, 1 note                                 1.20 % of one core
+   Glokk Siren, 4-note chord                           2.73 % of one core
+   Glide 808, 1 note                                   0.65 % of one core
+   WORST CASE: 16 voices x (7+7 unison) + sub/noise + all FX9.73 % of one core
 
 ALL SAFETY CHECKS PASSED

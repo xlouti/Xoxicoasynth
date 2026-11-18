@@ -102,6 +102,21 @@ struct VoiceCtrl
     float bendSemis = 0.0f;
     float velSens = 0.5f;
     float aEnv[4] { 2, 400, 0.8f, 150 }, mEnv[4] { 2, 400, 0.3f, 300 };
+    // v1.1 drum / vox engine
+    float noiseDecay = 0.0f;          // ms; 0 = noise rides the amp env
+    float ring = 0.0f;                // osc A x osc B ring modulation
+    int burst = 0;                    // clap pre-hits
+    float burstGap = 10.0f;           // ms between clap hits
+    bool voxOn = false;
+    float vowel = 0.0f, voxEnv = 0.0f, voxMix = 1.0f;
+};
+
+// Vowel formants (F1-F3 Hz, gain, bandwidth Hz) for A E I O U.
+struct FormantTable
+{
+    static constexpr float f[5][3]  { { 650, 1080, 2650 }, { 400, 1700, 2600 }, { 290, 1870, 2800 }, { 400, 800, 2600 }, { 350, 600, 2700 } };
+    static constexpr float g[5][3]  { { 1.0f, 0.50f, 0.45f }, { 1.0f, 0.20f, 0.25f }, { 1.0f, 0.18f, 0.13f }, { 1.0f, 0.32f, 0.25f }, { 1.0f, 0.10f, 0.14f } };
+    static constexpr float bw[5][3] { { 80, 90, 120 }, { 70, 80, 100 }, { 40, 90, 100 }, { 40, 80, 100 }, { 40, 60, 100 } };
 };
 
 class Voice
@@ -111,8 +126,8 @@ public:
 
     void prepare (float sampleRate) noexcept { sr = sampleRate; resetState(); }
 
-    bool isActive() const noexcept { return ampEnv.active(); }
-    bool isReleasing() const noexcept { return ampEnv.state == Envelope::Release; }
+    bool isActive() const noexcept { return ampEnv.active() || noiseEnv.active() || burstLeft > 0; }
+    bool isReleasing() const noexcept { return ampEnv.state == Envelope::Release || (! ampEnv.active() && isActive()); }
     int note = -1;
     uint64_t age = 0;
 
@@ -134,26 +149,38 @@ public:
             }
             phSub = 0.0f;
             for (auto& f : filt) f.reset();
+            for (auto& f : nFilt) f.reset();
+            for (auto& ch : fmt) for (auto& f : ch) f.reset();
             noiseLp = 0.0f;
         }
+        autoRel = -1;
         if (retrigger || fresh)
         {
             updateEnvs (c);
-            ampEnv.noteOn();
+            burstLen = juce::jmax (1, (int) (c.burstGap * 0.001f * sr));
+            burstLeft = c.burst * burstLen;
+            if (burstLeft > 0) { ampEnv.reset(); noiseEnv.reset(); }   // envelopes start after the clap pre-hits
+            else { ampEnv.noteOn(); noiseEnv.noteOn(); }
             modEnv.noteOn();
             penv = 1.0f;
         }
     }
 
+    // one-shot mode: release by itself after attack + decay (+ clap pre-hits), whatever the MIDI note length
+    void setAutoRelease (const VoiceCtrl& c) noexcept
+    {
+        autoRel = (int) ((c.aEnv[0] + c.aEnv[1] + (float) c.burst * c.burstGap) * 0.001f * sr);
+    }
     void legatoTo (int midiNote) noexcept { note = midiNote; targetPitch = (float) midiNote; }
-    void release() noexcept { ampEnv.noteOff(); modEnv.noteOff(); }
-    void kill() noexcept { ampEnv.reset(); modEnv.reset(); note = -1; }
+    void release() noexcept { if (burstLeft > 0) { burstLeft = 0; ampEnv.noteOn(); noiseEnv.noteOn(); } ampEnv.noteOff(); modEnv.noteOff(); noiseEnv.noteOff(); }
+    void kill() noexcept { autoRel = -1; ampEnv.reset(); modEnv.reset(); noiseEnv.reset(); burstLeft = 0; note = -1; }
     float currentPitch() const noexcept { return pitch; }
 
     void updateEnvs (const VoiceCtrl& c) noexcept
     {
         ampEnv.set (c.aEnv[0], c.aEnv[1], c.aEnv[2], c.aEnv[3], sr);
         modEnv.set (c.mEnv[0], c.mEnv[1], c.mEnv[2], c.mEnv[3], sr);
+        noiseEnv.set (0.0f, juce::jmax (1.0f, c.noiseDecay), 0.0f, juce::jmin (c.aEnv[3], c.noiseDecay + 4.0f), sr);
     }
 
     void render (const VoiceCtrl& c, float* outL, float* outR) noexcept
@@ -161,6 +188,7 @@ public:
         const int n = c.n;
         const auto& bank = WavetableBank::get();
         updateEnvs (c);
+        if (autoRel >= 0) { autoRel -= n; if (autoRel < 0) { autoRel = -1; release(); } }
 
         // pass 1: pitch per sample (glide, pitch env, bend, vibrato)
         float freq[VoiceCtrl::kMax];
@@ -190,10 +218,32 @@ public:
         const bool fourPole = c.filterType == 1 || c.filterType == 3;
         const float velGain = 1.0f - c.velSens + c.velSens * vel * vel;
         const float keyOct = c.keyTrack * ((float) note - 60.0f) / 12.0f;
+        const bool sepNoise = c.noiseDecay > 0.5f;
+        // formant (vowel) filter, coefficients per chunk
+        const bool vox = c.voxOn && c.voxMix > 0.0f;
+        float fg[3] {}, fk[3] {}, fa[3] {};
+        if (vox)
+        {
+            float vw = c.vowel + c.voxEnv * 4.0f * modEnv.level;
+            if (c.lfoDest == 6) vw += c.lfo[0] * c.lfoAmt * 2.0f;
+            vw = juce::jlimit (0.0f, 4.0f, vw);
+            const int i0 = juce::jmin (3, (int) vw);
+            const float t = vw - (float) i0;
+            const float formantShift = std::exp2 (juce::jlimit (-1.0f, 1.0f, ((float) note - 60.0f) / 48.0f)); // gentle tracking
+            for (int k = 0; k < 3; ++k)
+            {
+                const float fr = (FormantTable::f[i0][k] + t * (FormantTable::f[i0 + 1][k] - FormantTable::f[i0][k])) * formantShift;
+                const float b  = FormantTable::bw[i0][k] + t * (FormantTable::bw[i0 + 1][k] - FormantTable::bw[i0][k]);
+                fa[k] = FormantTable::g[i0][k] + t * (FormantTable::g[i0 + 1][k] - FormantTable::g[i0][k]);
+                fg[k] = std::tan (juce::MathConstants<float>::pi * juce::jmin (fr, 0.45f * sr) * invSr);
+                fk[k] = juce::jlimit (0.02f, 2.0f, (b * 1.5f) / fr);
+            }
+        }
 
         for (int i = 0; i < n; ++i)
         {
             float l = 0.0f, r = 0.0f;
+            float aL = 0.0f, aR = 0.0f;
             if (c.aOn && c.levelA[i] > 0.0f)
             {
                 float pos = c.waveA[i];
@@ -208,7 +258,7 @@ public:
                     phA[u] -= std::floor (phA[u]);
                     sl += s * panLA[u]; sr2 += s * panRA[u];
                 }
-                l += sl * c.levelA[i]; r += sr2 * c.levelA[i];
+                aL = sl * c.levelA[i]; aR = sr2 * c.levelA[i];
             }
             if (c.bOn && c.levelB[i] > 0.0f)
             {
@@ -226,7 +276,14 @@ public:
                 }
                 l += sl * c.levelB[i]; r += sr2 * c.levelB[i];
             }
-            float mono = 0.0f;
+            if (c.ring > 0.0f)
+            {   // ring mod: metallic clangs for hats, crashes, bells and percs
+                const float rl = aL * l * 2.0f, rr = aR * r * 2.0f;
+                l = (aL + l) * (1.0f - c.ring) + rl * c.ring;
+                r = (aR + r) * (1.0f - c.ring) + rr * c.ring;
+            }
+            else { l += aL; r += aR; }
+            float mono = 0.0f, nz = 0.0f;
             if (c.subLevel[i] > 0.0f)
             {
                 const float sine = bank.readFrame (0, lvS, phSub);
@@ -239,7 +296,8 @@ public:
             {
                 const float w = rand01() * 2.0f - 1.0f;
                 noiseLp += noiseA * (w - noiseLp);
-                mono += noiseLp * c.noiseLevel[i] * (1.6f - 0.8f * c.noiseColour);
+                const float ns = noiseLp * c.noiseLevel[i] * (1.6f - 0.8f * c.noiseColour);
+                if (sepNoise) nz = ns; else mono += ns;
             }
             l += mono; r += mono;
 
@@ -265,9 +323,38 @@ public:
                 l = filt[2].process (l, g, k2, mode);
                 r = filt[3].process (r, g, k2, mode);
             }
+            if (sepNoise)
+            {   // noise layer with its own decay (snare wires, kick click, hat sizzle) through the same filter
+                if (dr > 0.001f) { const float pre = 1.0f + dr * dr * 30.0f; nz = fastTanh (nz * pre) / std::pow (pre, 0.55f); }
+                nz = nFilt[0].process (nz, g, k, mode);
+                if (fourPole) nz = nFilt[1].process (nz, g, juce::jmin (2.0f, k + 0.6f), mode);
+            }
+            if (vox)
+            {
+                float yl = 0.0f, yr = 0.0f;
+                for (int q = 0; q < 3; ++q)
+                {
+                    yl += fmt[0][q].process (l, fg[q], fk[q], 2) * fa[q];
+                    yr += fmt[1][q].process (r, fg[q], fk[q], 2) * fa[q];
+                }
+                l += c.voxMix * (yl * 2.2f - l);
+                r += c.voxMix * (yr * 2.2f - r);
+            }
+
+            // clap pre-hits: short decaying bursts, then the envelopes start
+            float burstGain = 1.0f;
+            bool inBurst = false;
+            if (burstLeft > 0)
+            {
+                inBurst = true;
+                const int segPos = burstLen - 1 - ((burstLeft - 1) % burstLen);
+                burstGain = std::exp (-(float) segPos / (0.28f * (float) burstLen));
+                if (--burstLeft == 0) { ampEnv.noteOn(); noiseEnv.noteOn(); }
+            }
 
             // amp
-            float amp = ampEnv.next() * velGain;
+            float amp = (inBurst ? burstGain : ampEnv.next()) * velGain;
+            const float nAmp = sepNoise ? (inBurst ? burstGain : noiseEnv.next()) * velGain : 0.0f;
             if (c.lfoDest == 4) amp *= 1.0f - c.lfoAmt * (0.5f - 0.5f * c.lfo[i]);
             float pl = 1.0f, pr = 1.0f;
             if (c.lfoDest == 5)
@@ -275,18 +362,20 @@ public:
                 const float pan = c.lfo[i] * c.lfoAmt;
                 pl = juce::jmin (1.0f, 1.0f - pan); pr = juce::jmin (1.0f, 1.0f + pan);
             }
-            outL[i] += l * amp * pl;
-            outR[i] += r * amp * pr;
+            outL[i] += l * amp * pl + nz * nAmp;
+            outR[i] += r * amp * pr + nz * nAmp;
         }
-        if (! ampEnv.active()) note = -1;
+        if (! sepNoise) noiseEnv.reset();
+        if (! isActive()) note = -1;
     }
 
 private:
     float sr = 48000.0f;
     float pitch = 60.0f, targetPitch = 60.0f, vel = 1.0f, penv = 0.0f;
     float phA[kMaxUni] {}, phB[kMaxUni] {}, phSub = 0.0f, noiseLp = 0.0f;
-    SVF filt[4];
-    Envelope ampEnv, modEnv;
+    SVF filt[4], nFilt[2], fmt[2][3];
+    Envelope ampEnv, modEnv, noiseEnv;
+    int burstLeft = 0, burstLen = 441, autoRel = -1;
     uint32_t rng = 22222u;
 
     inline float rand01() noexcept
@@ -297,7 +386,7 @@ private:
 
     void resetState() noexcept
     {
-        ampEnv.reset(); modEnv.reset();
+        ampEnv.reset(); modEnv.reset(); noiseEnv.reset(); burstLeft = 0;
         for (auto& f : filt) f.reset();
     }
 

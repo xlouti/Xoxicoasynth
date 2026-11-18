@@ -401,11 +401,28 @@ int runSafety (const juce::File& reportFile)
         for (int r = 0; r < 60; ++r)
         {
             auto patch = xs::Generator::generate (cat, (float) r / 59.0f, rng);
-            XoxicoaSynthProcessor::normaliseLoudness (patch, cat);   // same as the Generate button
-            proc.applyPatch (patch, "gen");
-            const bool mono = patch["voice_mode"] > 0.5f;
-            const auto f = analyse (render (proc, mono ? slidePhrase() : polyPhrase(), 2.0));
-            if (! f.finite || f.rmsDb < -40.0f || f.peakDb > -0.4f)
+            const int note = xs::Generator::exportNote (cat, rng);
+            bool usable = true;
+            Features f;
+            if (cat >= xs::stKick)
+            {   // one-shots / loops / fx / vox: same path as GENERATE, judged on the exported sound
+                XoxicoaSynthProcessor::normaliseKit (patch, cat, note, 150);
+                XoxicoaSynthProcessor kp;
+                kp.applyPatch (patch, "gen");
+                for (auto [id, v] : { std::pair<const char*, float> { "gen_cat", (float) cat }, { "exp_note", (float) note }, { "exp_bpm", 150.0f } })
+                    kp.apvts.getParameter (id)->setValueNotifyingHost (kp.apvts.getParameter (id)->convertTo0to1 (v));
+                f = analyse (XoxicoaSynthProcessor::renderOffline (kp, 44100.0));
+                usable = f.finite && f.peakDb > -9.0f && f.peakDb <= -0.4f && f.rmsDb > -50.0f;
+            }
+            else
+            {
+                XoxicoaSynthProcessor::normaliseLoudness (patch, cat);   // same as the Generate button
+                proc.applyPatch (patch, "gen");
+                const bool mono = patch["voice_mode"] > 0.5f;
+                f = analyse (render (proc, mono ? slidePhrase() : polyPhrase(), 2.0));
+                usable = f.finite && f.rmsDb >= -40.0f && f.peakDb <= -0.4f;
+            }
+            if (! usable)
             {
                 ++bad;
                 if (std::getenv ("XS_DEBUG"))

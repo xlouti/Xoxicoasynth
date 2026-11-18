@@ -73,6 +73,12 @@ jobs:
               echo "expected x86_64 minos and LSMinimumSystemVersion 10.15"
               exit 1
             fi
+            echo "---- os_workgroup imports x86_64 ($b) ----"
+            xcrun nm -m -arch x86_64 "$bin" | grep '_os_workgroup_' || true
+            if xcrun nm -m -arch x86_64 "$bin" | grep '_os_workgroup_' | grep -v 'weak' | grep -q .; then
+              echo "os_workgroup imports are not weak on x86_64"
+              exit 1
+            fi
           done
           cp README.md package/
           ditto -c -k --sequesterRsrc --keepParent package XoxicoaSynth_mac_universal.zip

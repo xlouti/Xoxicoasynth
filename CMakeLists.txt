@@ -61,6 +61,17 @@ target_link_libraries(XoxicoaSynth
 
 if(APPLE)
     target_link_libraries(XoxicoaSynth PUBLIC juce::juce_recommended_lto_flags)
+    # JUCE calls macOS 11 os_workgroup_* inside @available. With the 15 SDK those
+    # imports are strong unless the link marks them undefined-ok, and Catalina's
+    # dyld then refuses the x86_64 slice. -U makes each one a weak import.
+    foreach(xs_fmt AU VST3 Standalone)
+        if(TARGET XoxicoaSynth_${xs_fmt})
+            target_link_options(XoxicoaSynth_${xs_fmt} PRIVATE
+                "LINKER:-U,_os_workgroup_join"
+                "LINKER:-U,_os_workgroup_leave"
+                "LINKER:-U,_os_workgroup_max_parallel_threads")
+        endif()
+    endforeach()
 endif()
 
 if(XS_BUILD_TESTS)

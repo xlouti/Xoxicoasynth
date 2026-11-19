@@ -57,15 +57,18 @@ inline Patch categoryBase (int cat)
             { "cho_on", 1 }, { "cho_rate", 0.5f }, { "cho_depth", 0.45f }, { "cho_mix", 0.4f },
             { "dly_on", 1 }, { "dly_div", 6 }, { "dly_fb", 0.38f }, { "dly_mix", 0.24f }, { "dly_pp", 1 },
             { "rev_on", 1 }, { "rev_size", 0.82f }, { "rev_damp", 0.45f }, { "rev_mix", 0.38f }, { "master_vol", -2 } });
-        case 2: return merge (initPatch(), {   // 808
-            { "a_wave", 0.15f }, { "a_oct", -1 }, { "a_uni", 1 }, { "a_level", 0.95f },
-            { "sub_level", 0.15f }, { "sub_oct", 0 },
-            { "flt_type", 0 }, { "flt_cutoff", 3500 }, { "flt_res", 0.05f }, { "flt_drive", 0.3f }, { "flt_key", 0.0f },
-            { "e1_a", 1 }, { "e1_d", 1800 }, { "e1_s", 0.7f }, { "e1_r", 260 },
-            { "penv_amt", 7 }, { "penv_decay", 38 },
-            { "voice_mode", 2 }, { "glide", 110 }, { "vel_sens", 0.2f },
-            { "dist_on", 1 }, { "dist_type", 0 }, { "dist_drive", 0.4f }, { "dist_tone", 0.55f }, { "dist_mix", 0.85f },
-            { "master_vol", -3 } });
+        case 2:                                 // 808 (v1.2: plays at the note's real pitch; v1.1 sat an octave below, 20-39 Hz)
+        case st808Clean: case st808Rage: case st808Plugg: case st808Spinz: case st808Boom:
+            return merge (initPatch(), {
+            { "a_wave", 0.0f }, { "a_oct", 0 }, { "a_uni", 1 }, { "a_level", 0.95f }, { "a_width", 0.0f },
+            { "sub_level", 0.0f }, { "sub_oct", 0 },
+            { "flt_type", 0 }, { "flt_cutoff", 9000 }, { "flt_res", 0.0f }, { "flt_drive", 0.0f }, { "flt_key", 0.0f },
+            { "e1_a", 0 }, { "e1_d", 2400 }, { "e1_s", 0.6f }, { "e1_r", 280 },
+            { "penv_amt", 0 }, { "penv_decay", 60 },
+            { "punch", 0.5f }, { "click", 0.15f },
+            { "voice_mode", 2 }, { "glide", 110 }, { "vel_sens", 0.15f },
+            { "dist_on", 1 }, { "dist_type", 4 }, { "dist_drive", 0.62f }, { "dist_tone", 0.6f }, { "dist_mix", 1.0f }, { "low_keep", 0.7f },
+            { "st_width", 0.0f }, { "master_vol", -3 } });
         case 3: return merge (initPatch(), {   // Dark Pad
             { "a_wave", 2.3f }, { "a_uni", 7 }, { "a_detune", 0.45f }, { "a_width", 1.0f }, { "a_level", 0.7f },
             { "b_on", 1 }, { "b_wave", 4.5f }, { "b_oct", -1 }, { "b_uni", 3 }, { "b_detune", 0.3f }, { "b_level", 0.45f },
@@ -84,6 +87,17 @@ inline Patch categoryBase (int cat)
             { "e2_a", 0 }, { "e2_d", 200 }, { "e2_s", 0.0f }, { "e2_r", 200 },
             { "dly_on", 1 }, { "dly_div", 6 }, { "dly_fb", 0.33f }, { "dly_mix", 0.22f },
             { "rev_on", 1 }, { "rev_size", 0.65f }, { "rev_mix", 0.22f }, { "master_vol", -2 } });
+        case stSoftBell: case stSoftPluck: case stAiryPad: case stFlute: case stPluggKeys: case stMusicBox: case stGlassLead:
+            return merge (initPatch(), {       // light / soft synth set: gentle filter, chorus + width, no drive
+            { "a_wave", 0.0f }, { "a_uni", 1 }, { "a_level", 0.8f }, { "a_width", 0.6f },
+            { "flt_type", 0 }, { "flt_cutoff", 6000 }, { "flt_res", 0.05f }, { "flt_drive", 0.0f }, { "flt_key", 0.3f },
+            { "e1_a", 4 }, { "e1_d", 800 }, { "e1_s", 0.0f }, { "e1_r", 700 },
+            { "e2_a", 0 }, { "e2_d", 300 }, { "e2_s", 0.0f }, { "e2_r", 300 },
+            { "vel_sens", 0.55f }, { "dist_on", 0 },
+            { "cho_on", 1 }, { "cho_rate", 0.45f }, { "cho_depth", 0.4f }, { "cho_mix", 0.35f },
+            { "dly_on", 1 }, { "dly_div", 6 }, { "dly_fb", 0.32f }, { "dly_tone", 0.4f }, { "dly_mix", 0.18f },
+            { "rev_on", 1 }, { "rev_size", 0.82f }, { "rev_damp", 0.5f }, { "rev_mix", 0.32f },
+            { "st_width", 1.3f }, { "master_vol", -3 } });
         default: return merge (initPatch(), {  // drums / one-shots / loops / fx / vox
             { "a_wave", 0 }, { "a_uni", 1 }, { "a_level", 0.8f }, { "a_width", 0.0f },
             { "flt_type", 0 }, { "flt_cutoff", 20000 }, { "flt_res", 0.0f }, { "flt_key", 0.0f },
@@ -94,7 +108,7 @@ inline Patch categoryBase (int cat)
 }
 
 // Sound types that are pitched instruments: their export file name carries the key.
-inline bool isTonalType (int t) { return t <= stPluck || t == stSubBass || t == stVox; }
+inline bool isTonalType (int t) { return t <= stPluck || t == stSubBass || t == stVox || t >= st808Clean; }
 
 inline std::vector<Preset> buildFactoryPresets()
 {
@@ -130,6 +144,46 @@ inline std::vector<Preset> buildFactoryPresets()
     add (2, "Long Slide", { { "glide", 220 }, { "e1_d", 4000 }, { "e1_s", 0.85f }, { "e1_r", 400 } });
     add (2, "Fuzz 808", { { "dist_type", 2 }, { "dist_drive", 0.45f }, { "dist_tone", 0.45f }, { "b_on", 1 }, { "b_wave", 2 }, { "b_oct", -1 }, { "b_level", 0.15f } });
     add (2, "Plugg Low", { { "dist_drive", 0.2f }, { "dist_mix", 0.5f }, { "flt_cutoff", 1600 }, { "penv_amt", 4 }, { "e1_d", 2200 }, { "glide", 140 } });
+
+    // ---------------- v1.2 808 types (each loads its own generator type)
+    add (st808Clean, "Pure Sine Sub", { { "dist_drive", 0.1f }, { "dist_mix", 0.5f }, { "punch", 0.3f }, { "click", 0.0f }, { "low_keep", 0.9f }, { "dist_tone", 0.45f } });
+    add (st808Clean, "Deep Sine Glide", { { "dist_drive", 0.16f }, { "dist_mix", 0.6f }, { "punch", 0.35f }, { "click", 0.05f }, { "glide", 160 }, { "e1_d", 3000 }, { "e1_s", 0.7f } });
+    add (st808Rage, "Distorted Rage", { { "dist_type", 5 }, { "dist_drive", 0.62f }, { "dist_tone", 0.78f }, { "low_keep", 0.8f }, { "punch", 0.6f }, { "click", 0.3f }, { "glide", 85 } });
+    add (st808Rage, "Spaz Mosh 808", { { "dist_type", 5 }, { "dist_drive", 0.78f }, { "dist_tone", 0.85f }, { "low_keep", 0.75f }, { "punch", 0.7f }, { "click", 0.4f },
+                                        { "b_on", 1 }, { "b_wave", 3 }, { "b_oct", 1 }, { "b_level", 0.12f }, { "glide", 70 } });
+    add (st808Plugg, "Punchy Pluggnb", { { "dist_drive", 0.6f }, { "dist_tone", 0.5f }, { "punch", 0.85f }, { "click", 0.45f }, { "e1_d", 1000 }, { "e1_s", 0.3f }, { "glide", 80 } });
+    add (st808Plugg, "Plugg Knock", { { "dist_type", 0 }, { "dist_drive", 0.42f }, { "punch", 1.0f }, { "click", 0.6f }, { "e1_d", 700 }, { "e1_s", 0.2f }, { "glide", 70 } });
+    add (st808Spinz, "Spinz Glide", { { "glide", 320 }, { "dist_type", 1 }, { "dist_drive", 0.58f }, { "dist_tone", 0.65f }, { "punch", 0.4f }, { "e1_d", 3200 }, { "e1_s", 0.85f }, { "bend", 12 } });
+    add (st808Spinz, "Slide Sauce", { { "glide", 450 }, { "dist_drive", 0.64f }, { "punch", 0.45f }, { "click", 0.2f }, { "e1_d", 3600 }, { "e1_s", 0.8f } });
+    add (st808Boom, "Long Boom", { { "e1_d", 5200 }, { "e1_s", 0.9f }, { "e1_r", 900 }, { "punch", 0.55f }, { "click", 0.2f }, { "dist_drive", 0.56f }, { "low_keep", 0.9f } });
+    add (st808Boom, "Stadium Boom", { { "e1_d", 6000 }, { "e1_s", 0.85f }, { "e1_r", 1400 }, { "punch", 0.65f }, { "click", 0.3f }, { "dist_type", 5 }, { "dist_drive", 0.45f }, { "low_keep", 0.85f } });
+
+    // ---------------- v1.2 light / soft synths
+    add (stSoftBell, "Soft Bell", { { "a_oct", 1 }, { "b_on", 1 }, { "b_wave", 7 }, { "b_oct", 2 }, { "b_level", 0.22f }, { "e1_d", 1100 }, { "e1_r", 1000 } });
+    add (stSoftBell, "Cotton Bell", { { "a_oct", 1 }, { "b_on", 1 }, { "b_wave", 0 }, { "b_oct", 1 }, { "b_semi", 7 }, { "b_level", 0.2f }, { "ring", 0.12f }, { "e1_a", 8 }, { "e1_d", 1400 } });
+    add (stSoftPluck, "Soft Pluck", { { "a_wave", 1.2f }, { "a_uni", 3 }, { "a_detune", 0.1f }, { "flt_cutoff", 900 }, { "flt_env", 0.45f }, { "e2_d", 220 }, { "e1_d", 380 }, { "e1_r", 320 } });
+    add (stSoftPluck, "Feather Pluck", { { "a_wave", 0.8f }, { "b_on", 1 }, { "b_wave", 1 }, { "b_oct", 1 }, { "b_level", 0.25f }, { "flt_cutoff", 1300 }, { "flt_env", 0.35f }, { "e2_d", 180 }, { "e1_d", 300 } });
+    add (stAiryPad, "Airy Pad", { { "a_wave", 2 }, { "a_uni", 5 }, { "a_detune", 0.2f }, { "noise_level", 0.06f }, { "noise_color", 0.8f }, { "flt_cutoff", 2600 },
+                                  { "e1_a", 900 }, { "e1_s", 0.85f }, { "e1_r", 1800 }, { "lfo_dest", 1 }, { "lfo_rate", 0.25f }, { "lfo_amt", 0.2f }, { "rev_size", 0.93f }, { "rev_mix", 0.45f }, { "st_width", 1.6f } });
+    add (stAiryPad, "Cloud Haze", { { "a_wave", 1 }, { "a_uni", 7 }, { "a_detune", 0.25f }, { "b_on", 1 }, { "b_wave", 0 }, { "b_oct", 1 }, { "b_level", 0.3f },
+                                    { "noise_level", 0.08f }, { "flt_cutoff", 1800 }, { "e1_a", 1500 }, { "e1_s", 0.9f }, { "e1_r", 2500 }, { "rev_mix", 0.5f }, { "st_width", 1.8f } });
+    add (stFlute, "Breath Flute", { { "a_wave", 0.5f }, { "a_oct", 1 }, { "noise_level", 0.12f }, { "noise_color", 0.7f }, { "flt_cutoff", 4000 }, { "e1_a", 60 }, { "e1_s", 0.9f }, { "e1_r", 220 },
+                                    { "lfo_dest", 0 }, { "lfo_rate", 5.2f }, { "lfo_amt", 0.11f }, { "lfo_fade", 380 }, { "voice_mode", 2 }, { "glide", 45 } });
+    add (stFlute, "Night Whistle", { { "a_wave", 0.0f }, { "a_oct", 2 }, { "noise_level", 0.06f }, { "noise_color", 0.9f }, { "flt_cutoff", 7000 }, { "e1_a", 35 }, { "e1_s", 0.85f }, { "e1_r", 260 },
+                                     { "lfo_dest", 0 }, { "lfo_rate", 5.8f }, { "lfo_amt", 0.09f }, { "lfo_fade", 250 }, { "voice_mode", 2 }, { "glide", 70 } });
+    add (stPluggKeys, "Pluggnb Keys", { { "b_on", 1 }, { "b_wave", 1 }, { "b_oct", 1 }, { "b_level", 0.3f }, { "ring", 0.1f }, { "flt_cutoff", 3500 }, { "flt_env", 0.2f },
+                                        { "e1_a", 2 }, { "e1_d", 1200 }, { "e1_s", 0.25f }, { "e1_r", 600 }, { "lfo_dest", 4 }, { "lfo_rate", 4.0f }, { "lfo_amt", 0.12f }, { "cho_mix", 0.45f } });
+    add (stPluggKeys, "Velvet Keys", { { "a_wave", 0.6f }, { "b_on", 1 }, { "b_wave", 0 }, { "b_oct", 2 }, { "b_level", 0.18f }, { "flt_cutoff", 2400 }, { "e1_d", 1600 }, { "e1_s", 0.3f },
+                                       { "cho_mix", 0.5f }, { "cho_depth", 0.55f } });
+    add (stMusicBox, "Music Box", { { "a_oct", 2 }, { "b_on", 1 }, { "b_wave", 7 }, { "b_oct", 3 }, { "b_level", 0.3f }, { "e1_a", 0 }, { "e1_d", 700 }, { "e1_r", 900 }, { "flt_cutoff", 9000 },
+                                    { "penv_amt", 0.3f }, { "penv_decay", 10 }, { "ring", 0.08f } });
+    add (stMusicBox, "Celesta", { { "a_oct", 1 }, { "b_on", 1 }, { "b_wave", 0 }, { "b_oct", 3 }, { "b_level", 0.25f }, { "e1_a", 0 }, { "e1_d", 900 }, { "e1_r", 1100 }, { "flt_cutoff", 8000 } });
+    add (stGlassLead, "Glass Lead", { { "a_wave", 6.8f }, { "a_uni", 3 }, { "a_detune", 0.12f }, { "b_on", 1 }, { "b_wave", 0 }, { "b_oct", 1 }, { "b_level", 0.3f },
+                                      { "flt_cutoff", 7000 }, { "flt_res", 0.15f }, { "e1_a", 15 }, { "e1_s", 0.8f }, { "e1_r", 300 },
+                                      { "lfo_dest", 0 }, { "lfo_rate", 5.5f }, { "lfo_amt", 0.07f }, { "lfo_fade", 300 }, { "voice_mode", 2 }, { "glide", 50 },
+                                      { "dist_on", 1 }, { "dist_type", 0 }, { "dist_drive", 0.1f }, { "dist_mix", 0.25f }, { "dly_mix", 0.24f } });
+    add (stGlassLead, "Crystal Line", { { "a_wave", 7 }, { "a_uni", 1 }, { "b_on", 1 }, { "b_wave", 6 }, { "b_oct", 1 }, { "b_semi", 7 }, { "b_level", 0.2f }, { "flt_cutoff", 9000 },
+                                        { "e1_a", 10 }, { "e1_s", 0.75f }, { "lfo_dest", 0 }, { "lfo_rate", 6.0f }, { "lfo_amt", 0.06f }, { "lfo_fade", 220 }, { "voice_mode", 2 }, { "glide", 35 } });
 
     // ---------------- Dark Pad
     add (3, "Void Pad", {});
@@ -179,7 +233,7 @@ public:
         {
             case 0: g.rageLead (p); break;
             case 1: g.pluggBell (p); break;
-            case 2: g.eight08 (p); break;
+            case 2: g.eight08 (p, 0); break;
             case 3: g.darkPad (p); break;
             case 4: g.pluck (p); break;
             case stKick: g.kick (p); break;
@@ -194,6 +248,13 @@ public:
             case stPercLoop: g.percLoop (p); break;
             case stFX: g.fx (p); break;
             case stVox: g.vox (p); break;
+            case st808Clean: g.eight08 (p, 1); break;
+            case st808Rage:  g.eight08 (p, 2); break;
+            case st808Plugg: g.eight08 (p, 3); break;
+            case st808Spinz: g.eight08 (p, 4); break;
+            case st808Boom:  g.eight08 (p, 5); break;
+            case stSoftBell: case stSoftPluck: case stAiryPad: case stFlute: case stPluggKeys: case stMusicBox: case stGlassLead:
+                g.light (p, cat); break;
             default: break;
         }
         return p;
@@ -204,7 +265,11 @@ public:
     {
         switch (cat)
         {
-            case st808: case stSubBass: return 28 + rng.nextInt (12);   // E1 .. D#2
+            case st808: case stSubBass: case st808Clean: case st808Rage: case st808Plugg: case st808Spinz: case st808Boom:
+                return 28 + rng.nextInt (12);                           // E1 .. D#2 (41-78 Hz fundamentals)
+            case stAiryPad: return 55 + rng.nextInt (12);
+            case stMusicBox: return 67 + rng.nextInt (12);
+            case stSoftBell: case stSoftPluck: case stFlute: case stPluggKeys: case stGlassLead: return 60 + rng.nextInt (12);
             case stVox:                 return 50 + rng.nextInt (12);   // D3 .. C#4
             case stDarkPad: case stPluck: case stRageLead: case stPluggBell: return 55 + rng.nextInt (12);
             default:                    return 48;                      // drums are tuned with the oscillator Octave/Semi
@@ -326,35 +391,150 @@ private:
         p["rev_mix"] = range (0.3f, 0.48f, 0.15f, 0.65f);
     }
 
-    void eight08 (Patch& p)
+    // style 0 = any (the classic "808" type), 1 clean sub, 2 distorted rage, 3 punchy pluggnb, 4 spinz glide, 5 long boom
+    void eight08 (Patch& p, int style)
     {
-        p["a_wave"] = range (0.0f, 0.4f, 0.0f, 1.3f);
-        p["a_oct"] = -1;
-        p["b_on"] = chance (0.05f, 0.35f) ? 1.0f : 0.0f;
-        p["b_wave"] = range (1.0f, 2.5f, 0.0f, 6.0f);
-        p["b_oct"] = pick ({ -1, 0 }, { -1, 0, 1 });
-        p["b_level"] = range (0.08f, 0.2f, 0.05f, 0.4f);
-        p["sub_level"] = range (0.0f, 0.3f, 0.0f, 0.5f);
-        p["flt_type"] = 0;
-        p["flt_cutoff"] = range (700.0f, 2800.0f, 400.0f, 12000.0f, true);   // low enough that Cutoff / Reso / Env shape the drive
-        p["flt_res"] = range (0.05f, 0.2f, 0.0f, 0.4f);
-        p["flt_drive"] = range (0.3f, 0.6f, 0.1f, 0.85f);
-        p["flt_env"] = range (0.1f, 0.35f, 0.0f, 0.6f);
-        p["e2_d"] = range (120.0f, 400.0f, 60.0f, 900.0f, true);
-        p["e1_d"] = range (900.0f, 2800.0f, 300.0f, 5000.0f, true);
-        p["e1_s"] = range (0.5f, 0.9f, 0.1f, 1.0f);
-        p["e1_r"] = range (150.0f, 450.0f, 60.0f, 900.0f, true);
-        p["penv_amt"] = range (4.0f, 12.0f, 0.0f, 24.0f);
-        p["penv_decay"] = range (22.0f, 65.0f, 10.0f, 150.0f, true);
-        p["voice_mode"] = 2;
-        p["glide"] = range (70.0f, 170.0f, 30.0f, 350.0f);
-        p["dist_on"] = chance (0.85f, 0.95f) ? 1.0f : 0.0f;
-        p["dist_type"] = pick ({ 0, 0, 1, 3 }, { 0, 1, 2, 3 });
-        p["dist_drive"] = range (0.25f, 0.55f, 0.1f, 0.85f);
-        p["dist_tone"] = range (0.4f, 0.75f, 0.25f, 1.0f);
-        p["dist_mix"] = range (0.6f, 1.0f, 0.4f, 1.0f);
-        p["rev_on"] = chance (0.0f, 0.3f) ? 1.0f : 0.0f;
-        p["rev_mix"] = range (0.05f, 0.1f, 0.05f, 0.2f);
+        if (style == 0) style = (int) pick ({ 2, 2, 3, 4, 5 }, { 1, 2, 3, 4, 5 });   // the plain 808 type never rolls a clean sub unless Wild is up
+        p["a_wave"] = range (0.0f, 0.12f, 0.0f, 0.5f);                      // clean sine body (a touch of triangle when wild)
+        p["a_oct"] = 0;
+        p["punch"] = range (0.35f, 0.65f, 0.15f, 0.95f);
+        p["click"] = range (0.05f, 0.3f, 0.0f, 0.6f);
+        p["e1_d"] = range (1600.0f, 3200.0f, 800.0f, 5000.0f, true);
+        p["e1_s"] = range (0.45f, 0.75f, 0.2f, 0.95f);
+        p["e1_r"] = range (180.0f, 420.0f, 80.0f, 900.0f, true);
+        p["glide"] = range (70.0f, 150.0f, 40.0f, 300.0f);
+        p["dist_on"] = 1;
+        p["dist_type"] = pick ({ 4, 4, 0, 1 }, { 0, 1, 3, 4, 5 });
+        p["dist_drive"] = range (0.56f, 0.72f, 0.3f, 0.85f);
+        p["dist_tone"] = range (0.55f, 0.8f, 0.4f, 0.95f);
+        p["dist_mix"] = 1.0f;
+        p["low_keep"] = range (0.6f, 0.85f, 0.4f, 1.0f);
+        p["b_on"] = 0;
+        p["sub_level"] = 0.0f;
+        switch (style)
+        {
+            case 1: // clean sub: a pure sine with a soft knock, only a hint of 2nd harmonic so phones still hear the note
+                p["dist_type"] = 4; p["dist_drive"] = range (0.06f, 0.16f, 0.0f, 0.25f); p["dist_mix"] = range (0.4f, 0.65f, 0.2f, 0.8f);
+                p["punch"] = range (0.2f, 0.4f, 0.1f, 0.6f); p["click"] = range (0.0f, 0.08f, 0.0f, 0.2f); p["low_keep"] = 0.9f;
+                p["dist_tone"] = range (0.35f, 0.55f, 0.25f, 0.7f);
+                break;
+            case 2: // distorted rage: tube -> hard clip, bright tone, big knock, clean sub kept underneath
+                p["dist_type"] = pick ({ 5, 5, 1 }, { 1, 3, 5 }); p["dist_drive"] = range (0.55f, 0.75f, 0.4f, 0.9f);
+                p["dist_tone"] = range (0.7f, 0.9f, 0.5f, 1.0f); p["low_keep"] = range (0.7f, 0.85f, 0.5f, 1.0f);
+                p["punch"] = range (0.5f, 0.75f, 0.35f, 1.0f); p["click"] = range (0.2f, 0.45f, 0.1f, 0.7f);
+                p["glide"] = range (60.0f, 110.0f, 40.0f, 180.0f);
+                if (chance (0.4f, 0.6f)) { p["b_on"] = 1; p["b_wave"] = range (2.5f, 3.5f, 1.5f, 5.0f); p["b_oct"] = 1; p["b_level"] = range (0.06f, 0.14f, 0.04f, 0.25f); }
+                break;
+            case 3: // punchy pluggnb: shorter, bouncier, hard knock + click
+                p["dist_type"] = pick ({ 4, 4, 0 }, { 0, 1, 4 }); p["dist_drive"] = range (0.52f, 0.66f, 0.3f, 0.75f);
+                p["punch"] = range (0.75f, 1.0f, 0.55f, 1.0f); p["click"] = range (0.35f, 0.6f, 0.2f, 0.8f);
+                p["e1_d"] = range (650.0f, 1200.0f, 400.0f, 1800.0f, true); p["e1_s"] = range (0.15f, 0.35f, 0.0f, 0.5f);
+                p["glide"] = range (60.0f, 100.0f, 40.0f, 160.0f);
+                break;
+            case 4: // spinz / glide: long portamento, held body, bend range an octave
+                p["glide"] = range (260.0f, 450.0f, 180.0f, 700.0f); p["bend"] = 12;
+                p["e1_d"] = range (2600.0f, 4000.0f, 1800.0f, 5500.0f, true); p["e1_s"] = range (0.75f, 0.9f, 0.6f, 1.0f);
+                p["dist_type"] = pick ({ 4, 1 }, { 0, 1, 4, 5 }); p["dist_drive"] = range (0.56f, 0.7f, 0.35f, 0.8f);
+                break;
+            case 5: // long boom: very long decay / sustain and release, deep and wide-open
+                p["e1_d"] = range (4500.0f, 6500.0f, 3500.0f, 8000.0f, true); p["e1_s"] = range (0.8f, 0.92f, 0.6f, 1.0f);
+                p["e1_r"] = range (700.0f, 1400.0f, 400.0f, 2500.0f, true);
+                p["dist_drive"] = range (0.5f, 0.62f, 0.3f, 0.72f); p["low_keep"] = range (0.8f, 0.95f, 0.6f, 1.0f);
+                break;
+            default: break;
+        }
+    }
+
+    // light / soft synth set: gentle filtering, chorus + width, soft attacks, little or no drive
+    void light (Patch& p, int t)
+    {
+        p["st_width"] = range (1.15f, 1.5f, 0.9f, 1.9f);
+        p["cho_on"] = chance (0.85f, 0.7f) ? 1.0f : 0.0f;
+        p["cho_mix"] = range (0.25f, 0.45f, 0.15f, 0.6f);
+        p["cho_depth"] = range (0.3f, 0.55f, 0.15f, 0.8f);
+        p["cho_rate"] = range (0.3f, 0.7f, 0.15f, 1.4f, true);
+        p["dly_on"] = chance (0.75f, 0.7f) ? 1.0f : 0.0f;
+        p["dly_div"] = pick ({ 6, 5, 8 }, { 4, 5, 6, 8, 9 });
+        p["dly_fb"] = range (0.25f, 0.42f, 0.15f, 0.6f);
+        p["dly_mix"] = range (0.12f, 0.24f, 0.06f, 0.35f);
+        p["rev_mix"] = range (0.25f, 0.4f, 0.15f, 0.55f);
+        p["rev_size"] = range (0.75f, 0.9f, 0.55f, 0.97f);
+        p["dist_on"] = chance (0.0f, 0.25f) ? 1.0f : 0.0f;
+        p["dist_type"] = pick ({ 0, 4 }, { 0, 4 }); p["dist_drive"] = range (0.05f, 0.15f, 0.0f, 0.25f); p["dist_mix"] = range (0.2f, 0.35f, 0.1f, 0.5f);
+        p["flt_type"] = 0; p["flt_res"] = range (0.0f, 0.12f, 0.0f, 0.25f);
+        p["vel_sens"] = range (0.45f, 0.65f, 0.3f, 0.8f);
+        switch (t)
+        {
+            case stSoftBell:
+                p["a_wave"] = range (0.0f, 0.25f, 0.0f, 1.0f); p["a_oct"] = 1;
+                p["b_on"] = 1; p["b_wave"] = pick ({ 7, 0, 6.5f }, { 0, 1, 6, 7 }); p["b_oct"] = pick ({ 2, 1 }, { 1, 2, 3 });
+                p["b_semi"] = pick ({ 0, 0, 7 }, { 0, 5, 7, 12 }); p["b_level"] = range (0.15f, 0.3f, 0.08f, 0.45f);
+                p["ring"] = range (0.0f, 0.15f, 0.0f, 0.3f);
+                p["flt_cutoff"] = range (4500.0f, 9000.0f, 2500.0f, 14000.0f, true);
+                p["e1_a"] = range (2.0f, 10.0f, 0.0f, 25.0f); p["e1_d"] = range (800.0f, 1500.0f, 450.0f, 2400.0f, true);
+                p["e1_s"] = 0.0f; p["e1_r"] = range (700.0f, 1300.0f, 400.0f, 2000.0f, true);
+                break;
+            case stSoftPluck:
+                p["a_wave"] = range (0.8f, 1.6f, 0.0f, 2.4f); p["a_uni"] = pick ({ 1, 3 }, { 1, 3, 5 }); p["a_detune"] = range (0.05f, 0.14f, 0.0f, 0.25f);
+                p["b_on"] = chance (0.5f, 0.6f) ? 1.0f : 0.0f; p["b_wave"] = range (0.0f, 1.0f, 0.0f, 2.0f); p["b_oct"] = 1; p["b_level"] = range (0.15f, 0.3f, 0.1f, 0.45f);
+                p["flt_cutoff"] = range (700.0f, 1500.0f, 450.0f, 2600.0f, true); p["flt_env"] = range (0.3f, 0.5f, 0.15f, 0.7f);
+                p["e2_d"] = range (150.0f, 280.0f, 80.0f, 450.0f, true);
+                p["e1_a"] = range (1.0f, 4.0f, 0.0f, 10.0f); p["e1_d"] = range (280.0f, 480.0f, 180.0f, 800.0f, true); p["e1_s"] = 0.0f;
+                p["e1_r"] = range (250.0f, 450.0f, 150.0f, 800.0f, true);
+                break;
+            case stAiryPad:
+                p["a_wave"] = range (1.0f, 2.2f, 0.0f, 3.0f); p["a_uni"] = pick ({ 5, 7 }, { 3, 5, 7 }); p["a_detune"] = range (0.15f, 0.28f, 0.08f, 0.4f); p["a_width"] = 1.0f;
+                p["b_on"] = chance (0.6f, 0.6f) ? 1.0f : 0.0f; p["b_wave"] = range (0.0f, 1.0f, 0.0f, 2.0f); p["b_oct"] = 1; p["b_level"] = range (0.2f, 0.35f, 0.1f, 0.5f);
+                p["noise_level"] = range (0.04f, 0.09f, 0.0f, 0.14f); p["noise_color"] = range (0.7f, 0.9f, 0.5f, 1.0f);
+                p["flt_cutoff"] = range (1600.0f, 3200.0f, 1000.0f, 5000.0f, true);
+                p["e1_a"] = range (600.0f, 1600.0f, 250.0f, 2500.0f, true); p["e1_d"] = 2000; p["e1_s"] = range (0.8f, 0.95f, 0.6f, 1.0f);
+                p["e1_r"] = range (1500.0f, 2800.0f, 900.0f, 4000.0f, true);
+                p["lfo_dest"] = 1; p["lfo_shape"] = 0; p["lfo_sync"] = 0; p["lfo_rate"] = range (0.15f, 0.4f, 0.08f, 0.8f, true); p["lfo_amt"] = range (0.12f, 0.25f, 0.05f, 0.4f);
+                p["cho_on"] = 1; p["cho_mix"] = range (0.4f, 0.55f, 0.25f, 0.7f);
+                p["rev_size"] = range (0.88f, 0.96f, 0.75f, 0.99f); p["rev_mix"] = range (0.4f, 0.52f, 0.3f, 0.65f);
+                p["st_width"] = range (1.4f, 1.8f, 1.1f, 2.0f);
+                break;
+            case stFlute:
+                p["a_wave"] = range (0.3f, 0.7f, 0.0f, 1.0f); p["a_oct"] = pick ({ 1, 1, 2 }, { 0, 1, 2 });
+                p["noise_level"] = range (0.07f, 0.14f, 0.03f, 0.2f); p["noise_color"] = range (0.6f, 0.85f, 0.4f, 1.0f);
+                p["flt_cutoff"] = range (3000.0f, 6000.0f, 1800.0f, 9000.0f, true);
+                p["e1_a"] = range (35.0f, 90.0f, 15.0f, 160.0f); p["e1_d"] = 600; p["e1_s"] = range (0.8f, 0.95f, 0.6f, 1.0f); p["e1_r"] = range (160.0f, 320.0f, 90.0f, 500.0f);
+                p["lfo_dest"] = 0; p["lfo_shape"] = 0; p["lfo_sync"] = 0; p["lfo_rate"] = range (4.8f, 6.0f, 4.0f, 7.0f);
+                p["lfo_amt"] = range (0.08f, 0.13f, 0.04f, 0.18f); p["lfo_fade"] = range (250.0f, 500.0f, 120.0f, 900.0f);
+                p["voice_mode"] = 2; p["glide"] = range (35.0f, 80.0f, 15.0f, 150.0f);
+                p["cho_on"] = chance (0.3f, 0.5f) ? 1.0f : 0.0f; p["st_width"] = range (1.0f, 1.3f, 0.8f, 1.6f);
+                break;
+            case stPluggKeys:
+                p["a_wave"] = range (0.0f, 0.7f, 0.0f, 1.2f);
+                p["b_on"] = 1; p["b_wave"] = range (0.0f, 1.0f, 0.0f, 1.5f); p["b_oct"] = pick ({ 1, 2 }, { 1, 2 }); p["b_level"] = range (0.15f, 0.32f, 0.1f, 0.45f);
+                p["ring"] = range (0.0f, 0.12f, 0.0f, 0.25f);
+                p["flt_cutoff"] = range (2000.0f, 4000.0f, 1300.0f, 6500.0f, true); p["flt_env"] = range (0.1f, 0.25f, 0.0f, 0.4f);
+                p["e1_a"] = range (1.0f, 6.0f, 0.0f, 20.0f); p["e1_d"] = range (900.0f, 1600.0f, 500.0f, 2400.0f, true);
+                p["e1_s"] = range (0.15f, 0.35f, 0.0f, 0.5f); p["e1_r"] = range (450.0f, 800.0f, 250.0f, 1300.0f, true);
+                p["lfo_dest"] = 4; p["lfo_shape"] = 0; p["lfo_sync"] = 0; p["lfo_rate"] = range (3.0f, 5.0f, 2.0f, 6.5f); p["lfo_amt"] = range (0.06f, 0.15f, 0.0f, 0.25f);
+                p["cho_on"] = 1; p["cho_mix"] = range (0.35f, 0.55f, 0.2f, 0.7f);
+                break;
+            case stMusicBox:
+                p["a_wave"] = 0.0f; p["a_oct"] = pick ({ 2, 1 }, { 1, 2 });
+                p["b_on"] = 1; p["b_wave"] = pick ({ 7, 0 }, { 0, 6, 7 }); p["b_oct"] = 3; p["b_level"] = range (0.2f, 0.35f, 0.1f, 0.45f);
+                p["ring"] = range (0.0f, 0.12f, 0.0f, 0.25f);
+                p["flt_cutoff"] = range (6000.0f, 11000.0f, 4000.0f, 16000.0f, true);
+                p["penv_amt"] = range (0.0f, 0.4f, 0.0f, 1.0f); p["penv_decay"] = range (6.0f, 14.0f, 3.0f, 30.0f);
+                p["e1_a"] = 0.0f; p["e1_d"] = range (550.0f, 950.0f, 350.0f, 1400.0f, true); p["e1_s"] = 0.0f; p["e1_r"] = range (700.0f, 1200.0f, 400.0f, 1800.0f, true);
+                p["cho_on"] = chance (0.4f, 0.5f) ? 1.0f : 0.0f;
+                break;
+            case stGlassLead:
+                p["a_wave"] = range (6.3f, 7.0f, 5.5f, 7.0f); p["a_uni"] = pick ({ 1, 3 }, { 1, 3, 5 }); p["a_detune"] = range (0.06f, 0.14f, 0.0f, 0.25f);
+                p["b_on"] = 1; p["b_wave"] = range (0.0f, 0.5f, 0.0f, 6.0f); p["b_oct"] = 1; p["b_semi"] = pick ({ 0, 0, 7 }, { 0, 7, 12 }); p["b_level"] = range (0.18f, 0.32f, 0.1f, 0.45f);
+                p["flt_cutoff"] = range (5000.0f, 9000.0f, 3000.0f, 14000.0f, true); p["flt_res"] = range (0.08f, 0.2f, 0.0f, 0.3f);
+                p["e1_a"] = range (8.0f, 25.0f, 2.0f, 60.0f); p["e1_d"] = 800; p["e1_s"] = range (0.7f, 0.85f, 0.5f, 1.0f); p["e1_r"] = range (220.0f, 400.0f, 120.0f, 700.0f);
+                p["lfo_dest"] = 0; p["lfo_shape"] = 0; p["lfo_sync"] = 0; p["lfo_rate"] = range (5.0f, 6.2f, 4.0f, 7.0f);
+                p["lfo_amt"] = range (0.05f, 0.09f, 0.02f, 0.14f); p["lfo_fade"] = range (200.0f, 400.0f, 80.0f, 800.0f);
+                p["voice_mode"] = 2; p["glide"] = range (30.0f, 70.0f, 10.0f, 120.0f);
+                p["dist_on"] = chance (0.4f, 0.5f) ? 1.0f : 0.0f;
+                break;
+            default: break;
+        }
     }
 
     void darkPad (Patch& p)

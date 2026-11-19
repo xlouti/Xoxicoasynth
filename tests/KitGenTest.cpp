@@ -10,7 +10,10 @@
 namespace
 {
 const std::vector<int> kTypes { xs::st808, xs::stKick, xs::stSnare, xs::stClap, xs::stHiHat, xs::stOpenHat, xs::stCrash,
-                                xs::stPerc, xs::stSnap, xs::stSubBass, xs::stPercLoop, xs::stFX, xs::stVox };
+                                xs::stPerc, xs::stSnap, xs::stSubBass, xs::stPercLoop, xs::stFX, xs::stVox,
+                                // v1.2
+                                xs::st808Clean, xs::st808Rage, xs::st808Plugg, xs::st808Spinz, xs::st808Boom,
+                                xs::stSoftBell, xs::stSoftPluck, xs::stAiryPad, xs::stFlute, xs::stPluggKeys, xs::stMusicBox, xs::stGlassLead };
 
 void setP (XoxicoaSynthProcessor& p, const char* id, float v)
 {
@@ -25,7 +28,7 @@ void generateSeeded (XoxicoaSynthProcessor& p, int type, juce::int64 seed)
     juce::Random r (seed);
     auto patch = xs::Generator::generate (type, getP (p, "gen_wild"), r);
     setP (p, "exp_note", (float) xs::Generator::exportNote (type, r));
-    if (type >= xs::stKick) XoxicoaSynthProcessor::normaliseKit (patch, type, (int) getP (p, "exp_note"), (int) getP (p, "exp_bpm"));
+    if (xs::isKitType (type)) XoxicoaSynthProcessor::normaliseKit (patch, type, (int) getP (p, "exp_note"), (int) getP (p, "exp_bpm"));
     else XoxicoaSynthProcessor::normaliseLoudness (patch, type);
     p.applyPatch (patch, "Gen: " + xs::categories[type] + " #" + juce::String (100 + (int) (seed % 900)));
 }
@@ -218,13 +221,16 @@ void enableModuleFor (XoxicoaSynthProcessor& p, const juce::String& id)
     if (id == "penv_decay" && std::abs (getP (p, "penv_amt")) < 2) setP (p, "penv_amt", 12);
     if (id == "e1_s" && getP (p, "one_shot") > 0.5f && getP (p, "e1_d") > 1500) setP (p, "e1_d", 400);
     if (id == "vox_env" && getP (p, "e2_s") < 0.3f) setP (p, "e2_s", 0.7f);
+    if (id == "lfo_fade") { setP (p, "lfo_dest", 0.0f); setP (p, "lfo_sync", 0.0f); setP (p, "lfo_rate", 5.0f); if (getP (p, "lfo_amt") < 0.2f) setP (p, "lfo_amt", 0.4f); }   // a vibrato to fade in
+    if (id == "low_keep") { on ("dist_on"); if (getP (p, "dist_drive") < 0.5f) setP (p, "dist_drive", 0.6f); }
+    if (id == "st_width" && getP (p, "a_uni") < 3) { setP (p, "a_uni", 3); setP (p, "a_width", 1.0f); }   // width needs some stereo to widen
 }
 
 int runKnobs (const juce::File& report)
 {
     const juce::StringArray midiOnly { "glide", "bend", "vel_sens", "voice_mode", "master_vol", "limiter", "one_shot" };
     juce::String rep;
-    rep << "Xoxicoa Synth v1.1 - knob audit on generated sounds (44.1 kHz offline renders, deterministic)\n"
+    rep << "Xoxicoa Synth v1.2 - knob audit on generated sounds (44.1 kHz offline renders, deterministic)\n"
         << "Each knob is moved 35% of its travel (or toggled) from the generated value.\n"
         << "diff = max of: mean |dB| change over a 16-band x 23 ms spectrogram, worst single 23 ms frame / 3, and the same on the\n"
         << "stereo side channel (so Width counts). Level changes count too. >= 1.0 dB = audible.\n"

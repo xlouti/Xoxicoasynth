@@ -172,8 +172,11 @@ public:
         g.setColour (isMouseOver() ? col::mid : col::line.brighter (0.4f));
         g.drawRoundedRectangle (b, 3.0f, 1.0f);
         g.setColour (col::fg);
-        g.setFont (font (12.0f, true));
-        g.drawText (param.getCurrentValueAsText(), b.reduced (14, 0), juce::Justification::centred, true);
+        const auto valueText = param.getCurrentValueAsText();
+        auto f = font (12.0f, true);
+        if (juce::GlyphArrangement::getStringWidth (f, valueText) > b.getWidth() - 30.0f) f = font (10.5f, true);   // long type names ("808 Distorted Rage")
+        g.setFont (f);
+        g.drawText (valueText, b.reduced (14, 0), juce::Justification::centred, true);
         g.setColour (col::dim);
         auto arrow = [&g] (juce::Rectangle<float> r, bool left)
         {
@@ -202,6 +205,8 @@ public:
     }
 
     int labelW = 0;
+    // optional grouped menu (section headers); every choice not listed is added at the end
+    std::vector<std::pair<juce::String, std::vector<int>>> groups;
 
 private:
     juce::RangedAudioParameter& param;
@@ -220,8 +225,21 @@ private:
     {
         juce::PopupMenu m;
         const int n = numSteps();
-        for (int i = 0; i < n; ++i)
-            m.addItem (i + 1, param.getText ((float) i / (float) (n - 1), 32), true, i == current());
+        if (groups.empty())
+            for (int i = 0; i < n; ++i)
+                m.addItem (i + 1, param.getText ((float) i / (float) (n - 1), 32), true, i == current());
+        else
+        {
+            std::vector<bool> used ((size_t) n, false);
+            for (auto& [title, items] : groups)
+            {
+                m.addSectionHeader (title);
+                for (int i : items)
+                    if (i >= 0 && i < n) { m.addItem (i + 1, param.getText ((float) i / (float) (n - 1), 32), true, i == current()); used[(size_t) i] = true; }
+            }
+            for (int i = 0; i < n; ++i)
+                if (! used[(size_t) i]) m.addItem (i + 1, param.getText ((float) i / (float) (n - 1), 32), true, i == current());
+        }
         juce::Component::SafePointer<Selector> safe (this);
         m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (this).withMinimumWidth (getWidth()),
                          [safe] (int r) { if (safe && r > 0) safe->setIndex (r - 1); });

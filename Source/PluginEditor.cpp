@@ -44,7 +44,8 @@ XoxicoaSynthEditor::XoxicoaSynthEditor (XoxicoaSynthProcessor& p)
 
     knob ("penv_amt", "Amount"); knob ("penv_decay", "Decay");
 
-    sel ("lfo_shape"); sel ("lfo_dest"); knob ("lfo_rate", "Rate"); knob ("lfo_amt", "Amount");
+    sel ("lfo_shape"); sel ("lfo_dest"); knob ("lfo_rate", "Rate"); knob ("lfo_amt", "Amount"); knob ("lfo_fade", "Fade In");
+    knob ("punch", "Punch"); knob ("click", "Click"); knob ("low_keep", "Low Keep"); knob ("st_width", "Width");
     tog ("lfo_sync", "Sync"); sel ("lfo_div");
 
     sel ("voice_mode"); sel ("bend", "Bend"); knob ("glide", "Glide"); knob ("vel_sens", "Velocity");
@@ -99,6 +100,12 @@ XoxicoaSynthEditor::XoxicoaSynthEditor (XoxicoaSynthProcessor& p)
         dir.revealToUser();
     };
     sel ("gen_cat"); knob ("gen_wild", "Wild");
+    if (auto* s = dynamic_cast<Selector*> (byId["gen_cat"]))
+        s->groups = { { "SYNTHS", { xs::stRageLead, xs::stPluggBell, xs::stDarkPad, xs::stPluck } },
+                      { "808s / BASS", { xs::st808, xs::st808Clean, xs::st808Rage, xs::st808Plugg, xs::st808Spinz, xs::st808Boom, xs::stSubBass } },
+                      { "LIGHT SYNTHS", { xs::stSoftBell, xs::stSoftPluck, xs::stAiryPad, xs::stFlute, xs::stPluggKeys, xs::stMusicBox, xs::stGlassLead } },
+                      { "DRUMS", { xs::stKick, xs::stSnare, xs::stClap, xs::stHiHat, xs::stOpenHat, xs::stCrash, xs::stPerc, xs::stSnap } },
+                      { "LOOPS / FX / VOX", { xs::stPercLoop, xs::stFX, xs::stVox } } };
 
     scope = std::make_unique<Scope> (p.engine.scope);
     addAndMakeVisible (*scope);
@@ -145,7 +152,8 @@ XoxicoaSynthEditor::XoxicoaSynthEditor (XoxicoaSynthProcessor& p)
 
     panels = {
         { "OSC A", { 12, 68, 318, 196 }, "a_on" },     { "OSC B", { 338, 68, 318, 196 }, "b_on" },
-        { "SUB / NOISE", { 664, 68, 200, 196 }, "" },  { "SCOPE", { 872, 68, 356, 196 }, "" },
+        { "SUB / NOISE", { 664, 68, 200, 196 }, "" },  { "808 / WIDTH", { 872, 68, 164, 196 }, "" },
+        { "SCOPE", { 1044, 68, 184, 196 }, "" },
         { "FILTER", { 12, 272, 330, 160 }, "" },       { "AMP ENV", { 350, 272, 250, 160 }, "" },
         { "MOD ENV  >  FILTER", { 608, 272, 250, 160 }, "" }, { "PITCH ENV", { 866, 272, 130, 160 }, "" },
         { "LFO", { 1004, 272, 224, 160 }, "" },
@@ -304,7 +312,7 @@ void XoxicoaSynthEditor::resized()
     nextBtn.setBounds (596, 18, 28, 30);
     saveBtn.setBounds (632, 18, 64, 30);
     loadBtn.setBounds (700, 18, 64, 30);
-    place ("gen_cat", { 800, 20, 132, 26 });
+    place ("gen_cat", { 772, 20, 160, 26 });
     place ("gen_wild", { 936, 0, 54, 60 });
     generateBtn.setBounds (996, 16, 112, 32);
     place ("master_vol", { 1114, 0, 54, 60 });
@@ -335,7 +343,10 @@ void XoxicoaSynthEditor::resized()
     place ("sub_oct",   { 680, 238, 76, 20 });
     place ("noise_level", { 768, 96, 84, KH });
     place ("noise_color", { 768, 168, 84, KH });
-    scope->setBounds (882, 94, 336, 160);
+    // 808 / width
+    knobRow ({ "punch", "click" }, 882, 96, 72);
+    knobRow ({ "low_keep", "st_width" }, 882, 172, 72);
+    scope->setBounds (1054, 94, 164, 160);
 
     // filter
     place ("flt_type", { 108, 278, 224, 20 });
@@ -351,9 +362,9 @@ void XoxicoaSynthEditor::resized()
     // lfo
     place ("lfo_shape", { 1014, 300, 100, 20 });
     place ("lfo_dest",  { 1118, 300, 100, 20 });
-    knobRow ({ "lfo_rate", "lfo_amt" }, 1012, 340, 58);
-    place ("lfo_sync", { 1134, 346, 84, 18 });
-    place ("lfo_div",  { 1134, 372, 84, 20 });
+    knobRow ({ "lfo_rate", "lfo_amt", "lfo_fade" }, 1010, 340, 48);
+    place ("lfo_sync", { 1156, 346, 64, 18 });
+    place ("lfo_div",  { 1156, 372, 64, 20 });
 
     // voice
     place ("voice_mode", { 22, 468, 98, 20 });

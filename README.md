@@ -12,12 +12,16 @@ macOS binary for Apple Silicon and Intel, built with JUCE 8.0.4 and CMake.
 - **Filter**: LP12 / LP24 / HP12 / HP24 / BP with zero-delay-feedback SVF, Cutoff, Resonance, Drive, Env amount (bipolar) and Key tracking.
 - **Amp ADSR** and **Mod ADSR** (routed to the filter). Click-free: attack starts from the current level, with a 1 ms minimum attack and a 4 ms minimum release.
 - **Pitch envelope** (-24 to +48 st, 1-1000 ms decay) for 808 punch and knock.
+- **808 / Width (v1.2)**: Punch (fast pitch drop of up to +24 st plus up to +4 dB of attack on every new hit, never on a legato slide),
+  Click (a kick-style click / knock layer: a 3.6 kHz > 150 Hz sweep plus a noise tick), Low Keep (swaps the distorted
+  band below 120 Hz for the clean one, so drive adds phone-audible harmonics without eating the sub) and Width (mid/side,
+  0 = mono to 2 = extra wide).
 - **LFO**: Sine / Tri / Saw / Square / S&H. Free rate or tempo sync (4 bars to 1/32, triplets and dotted).
-  Destinations: Pitch, Cutoff, Wave A, Wave B, Volume, Pan, Vowel.
+  Destinations: Pitch, Cutoff, Wave A, Wave B, Volume, Pan, Vowel. Fade In (v1.2, 0-3 s) delays the LFO on every new note (flute / lead vibrato).
 - **Voice**: Poly (16 voices) / Mono / Legato, Glide, Bend range and Velocity sensitivity.
   Legato with overlapping notes gives FL-style 808 slides with no retrigger.
 - **FX**:
-  - Distortion: Soft / Hard / Fold / Mosh, oversampled 2x, with Drive, Tone and Mix.
+  - Distortion: Soft / Hard / Fold / Mosh / Tube / Rage (v1.2: Tube = biased warm even harmonics, Rage = tube into a hard clipper), oversampled 2x, with Drive, Tone and Mix.
   - Chorus.
   - Tempo-synced ping-pong Delay. Tone darkens the echoes on the left half of the knob and thins them on the right half.
   - Reverb with Size, Damp, Width and Mix.
@@ -32,7 +36,10 @@ macOS binary for Apple Silicon and Intel, built with JUCE 8.0.4 and CMake.
 
 ## Generator
 Pick a sound type, set **Wild**, then hit **GENERATE**. Types: Rage Lead, Plugg Bell, 808, Dark Pad, Pluck,
-Kick, Snare, Clap, Hi Hat, Open Hat, Crash, Perc, Snap, Sub Bass, Perc Loop, FX, Vox Chant.
+Kick, Snare, Clap, Hi Hat, Open Hat, Crash, Perc, Snap, Sub Bass, Perc Loop, FX, Vox Chant, and (v1.2)
+808 Clean Sub, 808 Distorted Rage, 808 Punchy Pluggnb, 808 Spinz Glide, 808 Long Boom, Soft Bell, Soft Pluck,
+Airy Pad, Flute / Whistle, Pluggnb Keys, Music Box and Glass Lead. The type menu is grouped
+(Synths / 808s and Bass / Light Synths / Drums / Loops, FX and Vox).
 Drums, loops, FX and vox chants are built from the synth's own oscillators, noise, filter, envelopes and FX
 (plus the v1.1 drum / vox / loop sections), so every normal knob keeps shaping a generated sound and
 MIDI plays it chromatically. One-shots are peak-normalised to -1 dBFS before the limiter.

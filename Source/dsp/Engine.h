@@ -51,6 +51,7 @@ public:
         pNDecay = g ("noise_decay"); pRing = g ("ring"); pBurst = g ("burst"); pBurstGap = g ("burst_gap"); pOneShot = g ("one_shot");
         pVoxOn = g ("vox_on"); pVowel = g ("vox_vowel"); pVoxEnv = g ("vox_env"); pVoxMix = g ("vox_mix");
         pSeqOn = g ("seq_on"); pSeqPat = g ("seq_pat"); pSeqRate = g ("seq_rate"); pSeqVary = g ("seq_vary"); pSeqSwing = g ("seq_swing"); pBoost = g ("boost");
+        pPunch = g ("punch"); pClick = g ("click"); pLowKeep = g ("low_keep"); pWidth = g ("st_width"); pLFade = g ("lfo_fade");
     }
 
     void prepare (double sampleRate, int maxBlock)
@@ -66,6 +67,9 @@ public:
         initS (sVol, juce::Decibels::decibelsToGain ((float) *pVol), 0.05);
         initS (sDistMix, 0.0f); initS (sChoMix, 0.0f); initS (sDlyMix, 0.0f); initS (sRevMix, 0.0f);
         initS (sDistDrive, *pDDrive); initS (sDlyTime, 0.25f, 0.15);
+        initS (sLowKeep, *pLowKeep); initS (sWidth, *pWidth, 0.05);
+        for (auto& ch : keepD) for (auto& f : ch) f.reset();
+        for (auto& ch : keepW) for (auto& f : ch) f.reset();
 
         juce::dsp::ProcessSpec spec { sampleRate, (juce::uint32) maxBlock, 2 };
         oversampler = std::make_unique<juce::dsp::Oversampling<float>> (2, 1, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true, false);
@@ -224,6 +228,9 @@ private:
     VoiceCtrl ctrl;
     std::atomic<float> *pNDecay, *pRing, *pBurst, *pBurstGap, *pOneShot, *pVoxOn, *pVowel, *pVoxEnv, *pVoxMix;
     std::atomic<float> *pBoost = nullptr;
+    std::atomic<float> *pPunch = nullptr, *pClick = nullptr, *pLowKeep = nullptr, *pWidth = nullptr, *pLFade = nullptr;
+    juce::SmoothedValue<float> sLowKeep, sWidth;
+    SVF keepD[2][2], keepW[2][2];   // Low Keep crossover (24 dB/oct LP at 120 Hz) on the dry and the distorted signal
     std::atomic<float> *pSeqOn, *pSeqPat, *pSeqRate, *pSeqVary, *pSeqSwing;
     bool seqActive = false; int seqNote = 60; float seqVel = 1.0f; double seqPos = 0.0; int64_t seqNext = 0;
     juce::Array<int> heldNotes;
@@ -264,6 +271,7 @@ private:
         for (int i = 0; i < 4; ++i) { c.aEnv[i] = *pE1[i]; c.mEnv[i] = *pE2[i]; }
         c.noiseDecay = *pNDecay; c.ring = *pRing; c.burst = juce::jlimit (0, 6, (int) *pBurst); c.burstGap = *pBurstGap;
         c.voxOn = *pVoxOn > 0.5f; c.vowel = *pVowel; c.voxEnv = *pVoxEnv; c.voxMix = *pVoxMix;
+        c.punch = *pPunch; c.click = *pClick; c.lfoFade = *pLFade;
     }
 
 public:
@@ -361,10 +369,17 @@ private:
             case 0: return fastTanh (x);
             case 1: return juce::jlimit (-1.0f, 1.0f, x * 1.8f) * 0.9f;                 // hard clip
             case 2: return std::sin (juce::jlimit (-12.0f, 12.0f, x) * 1.5707963f);      // wavefold
-            default:                                                                       // mosh: asymmetric + grit
+            case 3:                                                                        // mosh: asymmetric + grit
             {
                 const float a = x > 0.0f ? fastTanh (x * 1.6f) : fastTanh (x * 0.7f) * 1.25f;
                 return std::round (a * 24.0f) / 24.0f * 0.5f + a * 0.5f;
+            }
+            case 4:                                                                        // tube: biased tanh, warm even harmonics (2nd = the octave phones can play)
+                return (fastTanh (x + 0.45f) - fastTanh (0.45f)) * 1.1f;
+            default:                                                                       // rage: tube into a hard clipper, dense odd + even harmonics
+            {
+                const float t = fastTanh (x * 1.4f + 0.3f) - fastTanh (0.3f);
+                return juce::jlimit (-0.92f, 0.92f, t * 1.7f);
             }
         }
     }
@@ -391,19 +406,31 @@ private:
             {
                 const float d = driveStart + (driveEnd - driveStart) * (float) i / (float) un;
                 const float g = juce::Decibels::decibelsToGain (d * 36.0f);
-                const float comp = 1.0f / std::pow (g, type == 2 ? 0.25f : 0.62f);
+                const float comp = 1.0f / std::pow (g, type == 2 ? 0.25f : (type == 5 ? 0.7f : 0.62f));
                 uL[i] = distort (uL[i] * g, type) * comp;
                 uR[i] = distort (uR[i] * g, type) * comp;
             }
             oversampler->processSamplesDown (block);
             const float toneHz = 800.0f * std::pow (25.0f, (float) *pDTone);
             const float a = 1.0f - std::exp (-juce::MathConstants<float>::twoPi * toneHz / sr);
+            const float kg = std::tan (juce::MathConstants<float>::pi * 120.0f / sr);
+            sLowKeep.setTargetValue (*pLowKeep);
             for (int i = 0; i < num; ++i)
             {
                 toneL += a * (L[i] - toneL); toneR += a * (R[i] - toneR);
                 // DC blocker
-                const float yl = toneL - dcxL + 0.9995f * dcL; dcxL = toneL; dcL = yl;
-                const float yr = toneR - dcxR + 0.9995f * dcR; dcxR = toneR; dcR = yr;
+                float yl = toneL - dcxL + 0.9995f * dcL; dcxL = toneL; dcL = yl;
+                float yr = toneR - dcxR + 0.9995f * dcR; dcxR = toneR; dcR = yr;
+                // Low Keep: swap the distorted low band (< 120 Hz) for the clean, heavier one, so drive adds grit without eating the sub
+                const float keep = sLowKeep.getNextValue();
+                {   // filters always run while the distortion is on, so turning Low Keep up never jumps
+                    const float dl = keepD[0][1].process (keepD[0][0].process (dryBuf.getSample (0, i), kg, 1.4142f, 0), kg, 1.4142f, 0);
+                    const float dr = keepD[1][1].process (keepD[1][0].process (dryBuf.getSample (1, i), kg, 1.4142f, 0), kg, 1.4142f, 0);
+                    const float wl = keepW[0][1].process (keepW[0][0].process (yl, kg, 1.4142f, 0), kg, 1.4142f, 0);
+                    const float wr = keepW[1][1].process (keepW[1][0].process (yr, kg, 1.4142f, 0), kg, 1.4142f, 0);
+                    // 0 = the distortion's own low end, 1 = a clean sub at +2.6 dB under the distorted top
+                    yl += keep * (1.35f * dl - wl); yr += keep * (1.35f * dr - wr);
+                }
                 const float m = sDistMix.getNextValue();
                 L[i] = dryBuf.getSample (0, i) + m * (yl - dryBuf.getSample (0, i));
                 R[i] = dryBuf.getSample (1, i) + m * (yr - dryBuf.getSample (1, i));
@@ -505,6 +532,15 @@ private:
                 R[i] = R[i] * dry + wetBuf.getSample (1, i) * m * 0.9f;
             }
         }
+        // ---- stereo width (mid/side): 0 = mono, 1 = as is, 2 = twice the side signal
+        sWidth.setTargetValue (*pWidth);
+        if (sWidth.isSmoothing() || std::abs (sWidth.getTargetValue() - 1.0f) > 0.001f)
+            for (int i = 0; i < num; ++i)
+            {
+                const float w = sWidth.getNextValue();
+                const float mid = 0.5f * (L[i] + R[i]), side = 0.5f * (L[i] - R[i]) * w;
+                L[i] = mid + side; R[i] = mid - side;
+            }
         // ---- master + lookahead limiter
         sVol.setTargetValue (juce::Decibels::decibelsToGain ((float) *pVol));
         const bool lim = *pLim > 0.5f;

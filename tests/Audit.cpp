@@ -231,6 +231,7 @@ Context contextFor (const juce::String& id)
         p["lfo_amt"] = 0.5f; p["lfo_dest"] = 1; p["flt_cutoff"] = 1200; p["lfo_rate"] = 3;
         if (id == "lfo_div") p["lfo_sync"] = 1;
         if (id == "lfo_shape") p["lfo_rate"] = 2;
+        if (id == "lfo_fade") { p["lfo_dest"] = 0; p["lfo_rate"] = 5.5f; p["lfo_amt"] = 0.4f; }
     }
     else if (id == "voice_mode") { p["glide"] = 200; p["e1_d"] = 200; p["e1_s"] = 0.3f; p["penv_amt"] = 12; c.phrase = slidePhrase(); }
     else if (id == "glide") { p["voice_mode"] = 2; c.phrase = slidePhrase(); }
@@ -247,6 +248,29 @@ Context contextFor (const juce::String& id)
         note (c.phrase, 0.0, 0.08, 60); note (c.phrase, 1.2, 1.28, 67);
         c.secs = 3.0;
     }
+    else if (id == "punch" || id == "click" || id == "low_keep")
+    {   // an 808: sine at the real pitch, low notes
+        p["a_wave"] = 0; p["e1_d"] = 1500; p["e1_s"] = 0.6f; p["flt_cutoff"] = 9000;
+        if (id == "low_keep") { p["dist_on"] = 1; p["dist_type"] = 2; p["dist_drive"] = 0.75f; p["dist_tone"] = 0.8f; }
+        c.phrase.clear();
+        note (c.phrase, 0.0, 0.6, 33); note (c.phrase, 0.8, 1.4, 36); note (c.phrase, 1.5, 1.9, 40);
+        c.secs = 2.2;
+    }
+    else if (id == "burst" || id == "burst_gap")
+    {   // a clap: noise bursts
+        p["a_on"] = 0; p["noise_level"] = 0.9f; p["noise_color"] = 0.8f; p["e1_d"] = 120; p["e1_s"] = 0.0f; p["one_shot"] = 1;
+        if (id == "burst_gap") p["burst"] = 3;
+        c.phrase.clear(); note (c.phrase, 0.0, 0.3, 60); note (c.phrase, 0.6, 0.9, 60); c.secs = 1.2;
+    }
+    else if (starts ("vox_")) { p["vox_on"] = 1; p["a_wave"] = 2; p["e2_a"] = 200; p["e2_d"] = 400; p["e2_s"] = 0.2f; if (id == "vox_env") p["vox_vowel"] = 0.2f; }
+    else if (starts ("seq_"))
+    {   // hold one note so the 16-step loop runs
+        p["seq_on"] = 1; p["e1_d"] = 90; p["e1_s"] = 0.0f; p["e1_r"] = 40;
+        if (id == "seq_vary" || id == "seq_rate") p["seq_pat"] = 0x5555;
+        if (id == "seq_swing") p["seq_pat"] = 0xFFFF;   // swing moves the off-beat 16ths, so they have to be on
+        c.phrase.clear(); note (c.phrase, 0.0, 2.6, 48); c.secs = 3.0;
+    }
+    else if (id == "st_width") { p["a_uni"] = 5; p["a_detune"] = 0.3f; p["a_width"] = 1.0f; }
     else if (id == "limiter") { p["master_vol"] = 6; p["a_uni"] = 7; p["b_on"] = 1; p["b_uni"] = 7; p["sub_level"] = 1; }
     return c;
 }
@@ -271,11 +295,14 @@ int runAudit (const juce::File& reportFile)
     for (auto& d : xs::paramDefs())
     {
         if (! d.affectsSound) continue;
+        if (auto* only = std::getenv ("XS_ONLY"))   // e.g. XS_ONLY=punch,click
+            if (! juce::StringArray::fromTokens (only, ",", "").contains (d.id)) continue;
         ++total;
         auto ctx = contextFor (d.id);
         auto* param = proc.apvts.getParameter (d.id);
         std::vector<float> values;
         if (d.kind == xs::Kind::Float) values = { d.min, param->convertFrom0to1 (0.5f), d.max };
+        else if (juce::String (d.id) == "seq_pat") values = { (float) 0x1111, (float) 0x5555, (float) 0xFFFF };   // 3 patterns, not all 65536
         else for (float v = d.min; v <= d.max + 0.01f; v += 1.0f) values.push_back (v);
         std::vector<Features> feats;
         for (float v : values)
@@ -404,7 +431,7 @@ int runSafety (const juce::File& reportFile)
             const int note = xs::Generator::exportNote (cat, rng);
             bool usable = true;
             Features f;
-            if (cat >= xs::stKick)
+            if (xs::isKitType (cat))
             {   // one-shots / loops / fx / vox: same path as GENERATE, judged on the exported sound
                 XoxicoaSynthProcessor::normaliseKit (patch, cat, note, 150);
                 XoxicoaSynthProcessor kp;
@@ -427,7 +454,7 @@ int runSafety (const juce::File& reportFile)
                 ++bad;
                 if (std::getenv ("XS_DEBUG"))
                 {
-                    float pk = 0; const float pr = XoxicoaSynthProcessor::probeLoudnessDb (patch, &pk);
+                    float pk = 0; const float pr = XoxicoaSynthProcessor::probeLoudnessDb (patch, &pk, cat);
                     std::printf ("BAD cat %d roll %d rms %.1f peak %.1f master %.1f probe %.1f/%.1f\n", cat, r, f.rmsDb, f.peakDb, patch["master_vol"], pr, pk);
                     for (auto& kv : patch) std::printf ("  %s=%.3f", kv.first.toRawUTF8(), kv.second);
                     std::printf ("\n");
@@ -584,7 +611,8 @@ int runDemos (const juce::File& dir)
             const float wild = 0.15f + 0.35f * (float) r;
             auto patch = xs::Generator::generate (cat, wild, rng);
             XoxicoaSynthProcessor::normaliseLoudness (patch, cat);
-            const Seq s = cat == 0 ? rageLine (1) : cat == 1 ? pluggMelody() : cat == 2 ? slide808() : cat == 3 ? padChords() : pluckArp();
+            const Seq s = xs::is808Type (cat) ? slide808() : cat == 0 ? rageLine (1) : (cat == 1 || xs::isLightType (cat)) ? (cat == xs::stAiryPad ? padChords() : pluggMelody())
+                        : cat == 3 ? padChords() : pluckArp();
             go (patch, s, "generated_" + xs::categories[cat].removeCharacters (" ").toLowerCase() + "_roll" + juce::String (r + 1)
                               + "_wild" + juce::String (juce::roundToInt (wild * 100)) + ".wav");
         }

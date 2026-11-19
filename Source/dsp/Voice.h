@@ -109,6 +109,10 @@ struct VoiceCtrl
     float burstGap = 10.0f;           // ms between clap hits
     bool voxOn = false;
     float vowel = 0.0f, voxEnv = 0.0f, voxMix = 1.0f;
+    // v1.2 808 engine / light synths
+    float punch = 0.0f;               // 0-1: pitch drop (up to +24 st) + attack boost (up to +5.4 dB) on each new hit
+    float click = 0.0f;               // 0-1: click / kick transient layer
+    float lfoFade = 0.0f;             // ms: per-note LFO fade-in (delayed vibrato)
 };
 
 // Vowel formants (F1-F3 Hz, gain, bandwidth Hz) for A E I O U.
@@ -163,6 +167,9 @@ public:
             else { ampEnv.noteOn(); noiseEnv.noteOn(); }
             modEnv.noteOn();
             penv = 1.0f;
+            punchP = punchA = 1.0f;
+            clickPos = 0; clickPh = 0.0f;
+            fadePos = 0;
         }
     }
 
@@ -173,7 +180,7 @@ public:
     }
     void legatoTo (int midiNote) noexcept { note = midiNote; targetPitch = (float) midiNote; }
     void release() noexcept { if (burstLeft > 0) { burstLeft = 0; ampEnv.noteOn(); noiseEnv.noteOn(); } ampEnv.noteOff(); modEnv.noteOff(); noiseEnv.noteOff(); }
-    void kill() noexcept { autoRel = -1; ampEnv.reset(); modEnv.reset(); noiseEnv.reset(); burstLeft = 0; note = -1; }
+    void kill() noexcept { autoRel = -1; clickPos = -1; ampEnv.reset(); modEnv.reset(); noiseEnv.reset(); burstLeft = 0; note = -1; }
     float currentPitch() const noexcept { return pitch; }
 
     void updateEnvs (const VoiceCtrl& c) noexcept
@@ -190,7 +197,19 @@ public:
         updateEnvs (c);
         if (autoRel >= 0) { autoRel -= n; if (autoRel < 0) { autoRel = -1; ampEnv.noteOff(); modEnv.noteOff(); } }   // noise layer keeps its own decay
 
-        // pass 1: pitch per sample (glide, pitch env, bend, vibrato)
+        // per-note LFO fade-in (delayed vibrato for flutes / leads)
+        float lfoAmt = c.lfoAmt;
+        if (c.lfoFade > 1.0f)
+        {
+            lfoAmt *= juce::jmin (1.0f, (float) fadePos / (c.lfoFade * 0.001f * sr));
+            fadePos += n;
+        }
+        // punch: pitch drop tau 12-42 ms, attack boost tau 30 ms
+        const float punchCoefP = std::exp (-1.0f / ((0.012f + 0.03f * c.punch) * sr));
+        const float punchCoefA = std::exp (-1.0f / (0.03f * sr));
+        float boost[VoiceCtrl::kMax];
+
+        // pass 1: pitch per sample (glide, pitch env, punch, bend, vibrato)
         float freq[VoiceCtrl::kMax];
         float maxFreq = 0.0f;
         for (int i = 0; i < n; ++i)
@@ -198,8 +217,10 @@ public:
             if (c.glideCoef > 0.0f) pitch = targetPitch + (pitch - targetPitch) * c.glideCoef;
             else pitch = targetPitch;
             penv *= c.penvCoef;
-            float p = pitch + c.penvAmt * penv + c.bendSemis;
-            if (c.lfoDest == 0) p += c.lfo[i] * c.lfoAmt * c.lfoAmt * 12.0f;
+            punchP *= punchCoefP; punchA *= punchCoefA;
+            boost[i] = 1.0f + 0.85f * c.punch * punchA;
+            float p = pitch + c.penvAmt * penv + c.bendSemis + c.punch * 24.0f * punchP;
+            if (c.lfoDest == 0) p += c.lfo[i] * lfoAmt * lfoAmt * 12.0f;
             freq[i] = 440.0f * std::exp2 ((p - 69.0f) * (1.0f / 12.0f));
             maxFreq = juce::jmax (maxFreq, freq[i]);
         }
@@ -225,7 +246,7 @@ public:
         if (vox)
         {
             float vw = c.vowel + c.voxEnv * 4.0f * modEnv.level;
-            if (c.lfoDest == 6) vw += c.lfo[0] * c.lfoAmt * 2.0f;
+            if (c.lfoDest == 6) vw += c.lfo[0] * lfoAmt * 2.0f;
             vw = juce::jlimit (0.0f, 4.0f, vw);
             const int i0 = juce::jmin (3, (int) vw);
             const float t = vw - (float) i0;
@@ -247,7 +268,7 @@ public:
             if (c.aOn && c.levelA[i] > 0.0f)
             {
                 float pos = c.waveA[i];
-                if (c.lfoDest == 2) pos += c.lfo[i] * c.lfoAmt * 3.5f;
+                if (c.lfoDest == 2) pos += c.lfo[i] * lfoAmt * 3.5f;
                 pos = juce::jlimit (0.0f, 7.0f, pos);
                 const float inc = freq[i] * c.aRatio * invSr;
                 float sl = 0.0f, sr2 = 0.0f;
@@ -263,7 +284,7 @@ public:
             if (c.bOn && c.levelB[i] > 0.0f)
             {
                 float pos = c.waveB[i];
-                if (c.lfoDest == 3) pos += c.lfo[i] * c.lfoAmt * 3.5f;
+                if (c.lfoDest == 3) pos += c.lfo[i] * lfoAmt * 3.5f;
                 pos = juce::jlimit (0.0f, 7.0f, pos);
                 const float inc = freq[i] * c.bRatio * invSr;
                 float sl = 0.0f, sr2 = 0.0f;
@@ -304,7 +325,7 @@ public:
             // filter
             const float me = modEnv.next();
             float oct = c.fltEnv * me * 7.0f + keyOct;
-            if (c.lfoDest == 1) oct += c.lfo[i] * c.lfoAmt * 4.0f;
+            if (c.lfoDest == 1) oct += c.lfo[i] * lfoAmt * 4.0f;
             const float fc = juce::jlimit (16.0f, 0.46f * sr, c.cutoff[i] * std::exp2 (oct));
             const float g = std::tan (juce::MathConstants<float>::pi * fc * invSr);
             const float k = 2.0f - 1.94f * c.res[i];
@@ -353,17 +374,32 @@ public:
             }
 
             // amp
-            float amp = (inBurst ? burstGain : ampEnv.next()) * velGain;
+            float amp = (inBurst ? burstGain : ampEnv.next()) * velGain * boost[i];
             const float nAmp = sepNoise ? (inBurst ? burstGain : noiseEnv.next()) * velGain : 0.0f;
-            if (c.lfoDest == 4) amp *= 1.0f - c.lfoAmt * (0.5f - 0.5f * c.lfo[i]);
+            if (c.lfoDest == 4) amp *= 1.0f - lfoAmt * (0.5f - 0.5f * c.lfo[i]);
             float pl = 1.0f, pr = 1.0f;
             if (c.lfoDest == 5)
             {
-                const float pan = c.lfo[i] * c.lfoAmt;
+                const float pan = c.lfo[i] * lfoAmt;
                 pl = juce::jmin (1.0f, 1.0f - pan); pr = juce::jmin (1.0f, 1.0f + pan);
             }
-            outL[i] += l * amp * pl + nz * nAmp;
-            outR[i] += r * amp * pr + nz * nAmp;
+            // click / kick layer: a fast 3.6 kHz -> 150 Hz sine sweep plus a noise tick, longer and knockier as Click goes up
+            float ck = 0.0f;
+            if (clickPos >= 0)
+            {
+                if (c.click > 0.0f)
+                {
+                    const float t = (float) clickPos * invSr;
+                    const float cf = 150.0f + 3500.0f * std::exp (-t / 0.004f);
+                    clickPh += cf * invSr; clickPh -= std::floor (clickPh);
+                    const float body = std::sin (clickPh * juce::MathConstants<float>::twoPi) * std::exp (-t / (0.005f + 0.022f * c.click));
+                    const float tick = (rand01() * 2.0f - 1.0f) * std::exp (-t / 0.0012f) * 0.6f;
+                    ck = (body + tick) * c.click * 1.5f * velGain;
+                }
+                if (++clickPos > (int) (0.15f * sr)) clickPos = -1;
+            }
+            outL[i] += l * amp * pl + nz * nAmp + ck;
+            outR[i] += r * amp * pr + nz * nAmp + ck;
         }
         if (! sepNoise) noiseEnv.reset();
         if (! isActive()) note = -1;
@@ -371,7 +407,8 @@ public:
 
 private:
     float sr = 48000.0f;
-    float pitch = 60.0f, targetPitch = 60.0f, vel = 1.0f, penv = 0.0f;
+    float pitch = 60.0f, targetPitch = 60.0f, vel = 1.0f, penv = 0.0f, punchP = 0.0f, punchA = 0.0f, clickPh = 0.0f;
+    int clickPos = -1, fadePos = 0;
     float phA[kMaxUni] {}, phB[kMaxUni] {}, phSub = 0.0f, noiseLp = 0.0f;
     SVF filt[4], nFilt[2], fmt[2][3];
     Envelope ampEnv, modEnv, noiseEnv;

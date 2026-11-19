@@ -14,14 +14,23 @@ inline constexpr double lfoDivBeats[] { 16.0, 8.0, 4.0, 2.0, 1.0, 0.75, 2.0 / 3.
 inline const juce::StringArray delayDivs { "1/32", "1/16T", "1/16", "1/16D", "1/8T", "1/8", "1/8D", "1/4T", "1/4", "1/4D", "1/2" };
 inline constexpr double delayDivBeats[] { 0.125, 1.0 / 6.0, 0.25, 0.375, 1.0 / 3.0, 0.5, 0.75, 2.0 / 3.0, 1.0, 1.5, 2.0 };
 inline const juce::StringArray voiceModes { "Poly", "Mono", "Legato" };
-inline const juce::StringArray distTypes { "Soft", "Hard", "Fold", "Mosh" };
+inline const juce::StringArray distTypes { "Soft", "Hard", "Fold", "Mosh", "Tube", "Rage" };
 inline const juce::StringArray subOctaves { "-1 Oct", "-2 Oct" };
 inline const juce::StringArray categories { "Rage Lead", "Plugg Bell", "808", "Dark Pad", "Pluck",
                                             "Kick", "Snare", "Clap", "Hi Hat", "Open Hat", "Crash", "Perc", "Snap",
-                                            "Sub Bass", "Perc Loop", "FX", "Vox Chant" };
+                                            "Sub Bass", "Perc Loop", "FX", "Vox Chant",
+                                            // v1.2: hard 808 types and the light / soft synth set
+                                            "808 Clean Sub", "808 Distorted Rage", "808 Punchy Pluggnb", "808 Spinz Glide", "808 Long Boom",
+                                            "Soft Bell", "Soft Pluck", "Airy Pad", "Flute / Whistle", "Pluggnb Keys", "Music Box", "Glass Lead" };
 // sound types (index into categories)
 enum SoundType { stRageLead, stPluggBell, st808, stDarkPad, stPluck, stKick, stSnare, stClap, stHiHat, stOpenHat,
-                 stCrash, stPerc, stSnap, stSubBass, stPercLoop, stFX, stVox, stNumTypes };
+                 stCrash, stPerc, stSnap, stSubBass, stPercLoop, stFX, stVox,
+                 st808Clean, st808Rage, st808Plugg, st808Spinz, st808Boom,
+                 stSoftBell, stSoftPluck, stAiryPad, stFlute, stPluggKeys, stMusicBox, stGlassLead, stNumTypes };
+inline bool is808Type (int t)   { return t == st808 || (t >= st808Clean && t <= st808Boom); }
+inline bool isLightType (int t) { return t >= stSoftBell && t <= stGlassLead; }
+// drums, loops, fx and vox chants: peak-normalised one-shots (the rest is loudness-matched like a synth patch)
+inline bool isKitType (int t)   { return t >= stKick && t <= stVox; }
 inline const juce::StringArray seqRates { "1/8", "1/16", "1/16T", "1/32" };
 inline constexpr double seqRateBeats[] { 0.5, 0.25, 1.0 / 6.0, 0.125 };
 inline const juce::StringArray vowelNames { "A", "E", "I", "O", "U" };
@@ -103,7 +112,7 @@ inline const std::vector<ParamDef>& paramDefs()
         { "vel_sens",  "Velocity",   Kind::Float, 0, 1, 0.5f },
         // FX: distortion
         { "dist_on",   "Dist On",    Kind::Bool,  0, 1, 0 },
-        { "dist_type", "Dist Type",  Kind::Choice, 0, 3, 0, 0, "", &distTypes },
+        { "dist_type", "Dist Type",  Kind::Choice, 0, 5, 0, 0, "", &distTypes },
         { "dist_drive","Dist Drive", Kind::Float, 0, 1, 0.4f },
         { "dist_tone", "Dist Tone",  Kind::Float, 0, 1, 0.7f },
         { "dist_mix",  "Dist Mix",   Kind::Float, 0, 1, 1 },
@@ -129,7 +138,7 @@ inline const std::vector<ParamDef>& paramDefs()
         { "master_vol","Master",     Kind::Float, -36, 12, -3, 0, "dB" },
         { "limiter",   "Limiter",    Kind::Bool,  0, 1, 1 },
         // generator (do not change the sound directly)
-        { "gen_cat",   "Generator Category", Kind::Choice, 0, 4, 0, 0, "", &categories, false },
+        { "gen_cat",   "Generator Category", Kind::Choice, 0, 28, 0, 0, "", &categories, false },
         { "gen_wild",  "Wildness",   Kind::Float, 0, 1, 0.35f, 0, "", nullptr, false },
         // ---- v1.1 drum / vox / loop engine (appended so v1.0 automation indices stay put)
         { "noise_decay","Noise Decay", Kind::Float, 0, 2000, 0, 120, "ms" },   // 0 = noise follows the amp env
@@ -150,6 +159,12 @@ inline const std::vector<ParamDef>& paramDefs()
         // export (do not change the sound)
         { "exp_note",  "Export Note", Kind::Int, 24, 84, 36, 0, "", nullptr, false },
         { "exp_bpm",   "Export BPM", Kind::Int, 60, 200, 150, 0, "", nullptr, false },
+        // ---- v1.2 808 engine + light synths (appended so older automation indices stay put)
+        { "punch",     "Punch",      Kind::Float, 0, 1, 0 },        // fast pitch drop + attack boost on every new hit
+        { "click",     "Click",      Kind::Float, 0, 1, 0 },        // click / kick layer on the attack
+        { "low_keep",  "Low Keep",   Kind::Float, 0, 1, 0 },        // keeps the clean sub under the distortion
+        { "st_width",  "Width",      Kind::Float, 0, 2, 1 },        // stereo width: 0 mono, 100% as is, 200% wide
+        { "lfo_fade",  "LFO Fade",   Kind::Float, 0, 3000, 0, 400, "ms" },  // vibrato / LFO fades in after each note
     };
     return defs;
 }

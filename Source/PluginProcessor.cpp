@@ -86,7 +86,7 @@ void XoxicoaSynthProcessor::generate()
     auto patch = xs::Generator::generate (cat, wild, genRng);
     if (auto* n = apvts.getParameter ("exp_note"))
         n->setValueNotifyingHost (n->convertTo0to1 ((float) xs::Generator::exportNote (cat, genRng)));
-    if (cat >= xs::stKick)
+    if (xs::isKitType (cat))
         normaliseKit (patch, cat, exportNote(), exportBpm());
     else
         normaliseLoudness (patch, cat);
@@ -126,7 +126,10 @@ double XoxicoaSynthProcessor::holdSeconds() const
     const int t = currentType();
     const double ad = (v ("e1_a") + v ("e1_d")) / 1000.0;
     if (v ("one_shot") > 0.5) return juce::jlimit (0.15, 6.0, ad);      // the voice releases by itself
-    if (t == xs::st808 || t == xs::stSubBass) return juce::jlimit (0.6, 2.5, v ("e1_a") / 1000.0 + v ("e1_d") / 1000.0 * 0.9);
+    if (xs::is808Type (t) && v ("e1_d") > 4000.0) return juce::jlimit (2.0, 5.0, v ("e1_d") / 1000.0 * 0.8);   // long boom
+    if (xs::is808Type (t) || t == xs::stSubBass) return juce::jlimit (0.6, 2.5, v ("e1_a") / 1000.0 + v ("e1_d") / 1000.0 * 0.9);
+    if (t == xs::stAiryPad) return juce::jlimit (1.5, 4.0, v ("e1_a") / 1000.0 + 1.8);
+    if (t == xs::stSoftBell || t == xs::stMusicBox || t == xs::stPluggKeys) return juce::jlimit (0.4, 2.5, v ("e1_d") / 1000.0 * 0.8);
     if (t == xs::stDarkPad) return juce::jlimit (1.0, 4.0, v ("e1_a") / 1000.0 + 1.5);
     return juce::jlimit (0.3, 3.0, v ("e1_a") / 1000.0 + 0.8);
 }
@@ -234,14 +237,19 @@ juce::String XoxicoaSynthProcessor::folderFor (int t)
 {
     static const juce::StringArray f { "Synth One Shots", "Synth One Shots", "808s", "Synth One Shots", "Synth One Shots",
                                        "Kicks", "Snares", "Claps", "Hi Hats", "Open Hats", "Crashes", "Percs", "Snaps",
-                                       "Sub Basses", "Foley and Percussion Loops", "FX", "Vox Chants" };
+                                       "Sub Basses", "Foley and Percussion Loops", "FX", "Vox Chants",
+                                       "808s", "808s", "808s", "808s", "808s",
+                                       "Light Synth One Shots", "Light Synth One Shots", "Light Synth One Shots", "Light Synth One Shots",
+                                       "Light Synth One Shots", "Light Synth One Shots", "Light Synth One Shots" };
     return f[juce::jlimit (0, f.size() - 1, t)];
 }
 
 juce::String XoxicoaSynthProcessor::labelFor (int t)
 {
     static const juce::StringArray l { "Rage Lead", "Plugg Bell", "808", "Dark Pad", "Pluck", "Kick", "Snare", "Clap",
-                                       "Hi Hat", "Open Hat", "Crash", "Perc", "Snap", "Sub", "Perc Loop", "FX", "Vox Chant" };
+                                       "Hi Hat", "Open Hat", "Crash", "Perc", "Snap", "Sub", "Perc Loop", "FX", "Vox Chant",
+                                       "808 Clean Sub", "808 Rage", "808 Pluggnb", "808 Spinz", "808 Long Boom",
+                                       "Soft Bell", "Soft Pluck", "Airy Pad", "Flute", "Pluggnb Keys", "Music Box", "Glass Lead" };
     return l[juce::jlimit (0, l.size() - 1, t)];
 }
 
@@ -291,7 +299,7 @@ juce::Array<juce::File> XoxicoaSynthProcessor::generateBatch (int n)
     return files;
 }
 
-float XoxicoaSynthProcessor::probeLoudnessDb (const xs::Patch& patchIn, float* peakDb)
+float XoxicoaSynthProcessor::probeLoudnessDb (const xs::Patch& patchIn, float* peakDb, int category)
 {
     XoxicoaSynthProcessor probe;
     auto patch = patchIn;
@@ -302,6 +310,7 @@ float XoxicoaSynthProcessor::probeLoudnessDb (const xs::Patch& patchIn, float* p
     constexpr int blockSize = 512;
     probe.prepareToPlay (fs, blockSize);
     const bool mono = patch["voice_mode"] > 0.5f;
+    const int lo = xs::isLightType (category) ? 60 : 36, hi = lo + 7;          // light synths are probed where they're played
     const double secs = juce::jlimit (1.2, 4.0, patch["e1_a"] / 1000.0 + 0.9);
     const int total = (int) (secs * fs);
     juce::AudioBuffer<float> buf (2, blockSize);
@@ -314,13 +323,13 @@ float XoxicoaSynthProcessor::probeLoudnessDb (const xs::Patch& patchIn, float* p
         juce::MidiBuffer midi;
         if (pos == 0)
         {
-            if (mono) midi.addEvent (juce::MidiMessage::noteOn (1, 36, 0.9f), 0);
-            else for (int n : { 48, 55, 63 }) midi.addEvent (juce::MidiMessage::noteOn (1, n, 0.9f), 0);
+            if (mono) midi.addEvent (juce::MidiMessage::noteOn (1, lo, 0.9f), 0);
+            else for (int n : { lo + 12, lo + 19, lo + 27 }) midi.addEvent (juce::MidiMessage::noteOn (1, xs::isLightType (category) ? n - 12 : n, 0.9f), 0);
         }
         if (mono && pos <= (int) (0.5 * fs) && pos + blockSize > (int) (0.5 * fs))
         {   // a legato slide, like real 808 use
-            midi.addEvent (juce::MidiMessage::noteOn (1, 43, 0.9f), 0);
-            midi.addEvent (juce::MidiMessage::noteOff (1, 36), 1);
+            midi.addEvent (juce::MidiMessage::noteOn (1, hi, 0.9f), 0);
+            midi.addEvent (juce::MidiMessage::noteOff (1, lo), 1);
         }
         buf.clear();
         probe.processBlock (buf, midi);
@@ -347,10 +356,13 @@ void XoxicoaSynthProcessor::normaliseLoudness (xs::Patch& patch, int category)
     // loudness target (dB RMS of the loudest 400 ms) and a peak target before the limiter
     static constexpr float rmsTarget[]  { -13.0f, -16.0f, -9.5f, -15.0f, -16.0f };
     static constexpr float peakTarget[] { -1.0f, 1.0f, -1.0f, -1.0f, 1.0f };  // limiter rounds off the overs
-    const int c = juce::jlimit (0, 4, category);
+    float rT, pT;
+    if (xs::is808Type (category))        { rT = -8.0f;  pT = 2.0f; }    // 808s: loud body; the look-ahead limiter shaves up to ~3 dB off the punch/click only
+    else if (xs::isLightType (category)) { rT = category == xs::stAiryPad ? -17.0f : -15.5f; pT = 0.0f; }
+    else { const int c = juce::jlimit (0, 4, category); rT = rmsTarget[c]; pT = peakTarget[c]; }
     float peak = 0.0f;
-    const float measured = probeLoudnessDb (patch, &peak);
-    const float gain = juce::jmin (rmsTarget[c] - measured, peakTarget[c] - peak);
+    const float measured = probeLoudnessDb (patch, &peak, category);
+    const float gain = juce::jmin (rT - measured, pT - peak);
     patch["master_vol"] = juce::jlimit (-24.0f, 12.0f, gain);
 }
 

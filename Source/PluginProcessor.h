@@ -45,7 +45,7 @@ public:
     void stepPreset (int delta);
 
     // Loudness of a patch (loudest 400 ms window, dB RMS) measured by rendering it offline.
-    static float probeLoudnessDb (const xs::Patch& patch, float* peakDb = nullptr);
+    static float probeLoudnessDb (const xs::Patch& patch, float* peakDb = nullptr, int category = -1);
     // Sets master_vol so the patch lands on its category's loudness target.
     static void normaliseLoudness (xs::Patch& patch, int category);
     static void normaliseKit (xs::Patch& patch, int category, int note, int bpm);

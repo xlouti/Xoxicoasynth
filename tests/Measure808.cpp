@@ -319,7 +319,9 @@ int main (int argc, char** argv)
             auto patch = xs::Generator::generate (t, p.apvts.getRawParameterValue ("gen_wild")->load(), r);
             setv ("exp_note", (float) xs::Generator::exportNote (t, r));
             XoxicoaSynthProcessor::normaliseLoudness (patch, t);
+            if (std::getenv ("XS_NOLIM")) patch["limiter"] = 0.0f;
             p.applyPatch (patch, "k");
+            if (mv == 0) { std::printf ("  dist_on %.0f type %.0f drive %.2f punch %.2f click %.2f e1_d %.0f e1_s %.2f master %.1f\n", patch["dist_on"], patch["dist_type"], patch["dist_drive"], patch["punch"], patch["click"], patch["e1_d"], patch["e1_s"], patch["master_vol"]); }
             auto* par = p.apvts.getParameter (argv[3]);
             const float v = par->getValue();
             if (mv == 1) par->setValueNotifyingHost (v < 0.5f ? v + 0.35f : v - 0.35f);

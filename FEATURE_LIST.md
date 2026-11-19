@@ -7,7 +7,9 @@
   - **Punch**: on every new hit, a fast pitch drop (up to +24 st, 12-42 ms) plus up to +5.4 dB on the attack.
     Legato slides never re-punch.
   - **Click**: a kick-style knock layer (3.6 kHz > 150 Hz sweep plus a noise tick). It gets longer and harder as the knob goes up.
-  - **Low Keep**: the band under 120 Hz is replaced with the clean sub, up to +2.6 dB. Drive then adds harmonics you can hear on a phone without muddying or eating the sub.
+  - **Low Keep (clean sub weight)**: blends a pure sine at the note's fundamental under the sound. The sine follows glides, the pitch envelope, Punch and bend.
+    As it comes up, the distorted/FX signal is turned down (up to 16 dB), so the sum keeps its headroom. The limiter catches the rest, so it can't clip.
+    At 0 it is off. At 1 the sub is about +8 dB over the oscillator. Moving it 35% changes the sound by 1.6-4.3 dB on every 808 type in the knob audit.
   - **Width**: mid/side, from 0 (mono, the 808 default) to 2 (extra wide, for light synths).
 - **Two new distortion types** (oversampled 2x):
   - **Tube**: biased, with warm even harmonics. The 2nd harmonic is what laptop and phone speakers actually play.

@@ -13,8 +13,8 @@ macOS binary for Apple Silicon and Intel, built with JUCE 8.0.4 and CMake.
 - **Amp ADSR** and **Mod ADSR** (routed to the filter). Click-free: attack starts from the current level, with a 1 ms minimum attack and a 4 ms minimum release.
 - **Pitch envelope** (-24 to +48 st, 1-1000 ms decay) for 808 punch and knock.
 - **808 / Width (v1.2)**: Punch (fast pitch drop of up to +24 st plus up to +4 dB of attack on every new hit, never on a legato slide),
-  Click (a kick-style click / knock layer: a 3.6 kHz > 150 Hz sweep plus a noise tick), Low Keep (swaps the distorted
-  band below 120 Hz for the clean one, so drive adds phone-audible harmonics without eating the sub) and Width (mid/side,
+  Click (a kick-style click / knock layer: a 3.6 kHz > 150 Hz sweep plus a noise tick), Low Keep (clean sub weight: a pure sine at the note's fundamental, following glides, pitch env and punch, blended
+  under the sound while the distorted / FX signal is turned down so the sum keeps its headroom) and Width (mid/side,
   0 = mono to 2 = extra wide).
 - **LFO**: Sine / Tri / Saw / Square / S&H. Free rate or tempo sync (4 bars to 1/32, triplets and dotted).
   Destinations: Pitch, Cutoff, Wave A, Wave B, Volume, Pan, Vowel. Fade In (v1.2, 0-3 s) delays the LFO on every new note (flute / lead vibrato).

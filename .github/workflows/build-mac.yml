@@ -2,6 +2,8 @@ name: Build Xoxicoa Synth for Mac
 on:
   workflow_dispatch:
   push:
+    # A pushed tag like v1.2.0 builds and publishes a GitHub release (path filters are not applied to tags).
+    tags: ['v*']
     paths:
       - 'Source/**'
       - 'CMakeLists.txt'
@@ -90,8 +92,47 @@ jobs:
           ditto "package/Xoxicoa Synth.component" ~/Library/Audio/Plug-Ins/Components/"Xoxicoa Synth.component"
           killall -9 AudioComponentRegistrar || true
           auval -v aumu XxSy Xoxi
+      - name: Package release zip (VST3 + AU only, small download)
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf relpkg && mkdir relpkg
+          ditto "package/Xoxicoa Synth.vst3" "relpkg/Xoxicoa Synth.vst3"
+          ditto "package/Xoxicoa Synth.component" "relpkg/Xoxicoa Synth.component"
+          (cd relpkg && zip -qry ../XoxicoaSynth_mac_vst3_au.zip "Xoxicoa Synth.vst3" "Xoxicoa Synth.component")
+          ls -l XoxicoaSynth_mac_vst3_au.zip
+          unzip -l XoxicoaSynth_mac_vst3_au.zip | tail -1
       - uses: actions/upload-artifact@v4
         with:
           name: XoxicoaSynth_mac_universal
-          path: XoxicoaSynth_mac_universal.zip
+          path: |
+            XoxicoaSynth_mac_universal.zip
+            XoxicoaSynth_mac_vst3_au.zip
           retention-days: 30
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: mac-universal
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: XoxicoaSynth_mac_universal
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' \
+            "Universal macOS build (arm64 + x86_64) of Xoxicoa Synth ${TAG}, built by GitHub Actions on macos-15-intel." \
+            "" \
+            "Hard-hitting 808 engine (real-pitch 808s, Punch, Click, Low Keep clean sub weight, Tube and Rage drive) and light synth types (soft bells, plucks, airy pads, flutes, pluggnb keys, music box, glass leads). See CHANGELOG.md and FEATURE_LIST.md." \
+            "" \
+            "XoxicoaSynth_mac_vst3_au.zip has Xoxicoa Synth.vst3 and Xoxicoa Synth.component. XoxicoaSynth_mac_universal.zip also has the Standalone app." \
+            "" \
+            "Minimum macOS 10.15 (x86_64 slice minos 10.15). The _os_workgroup imports are weak, so Catalina loads it. Ad-hoc signed." \
+            > notes.md
+          gh release create "$TAG" XoxicoaSynth_mac_vst3_au.zip XoxicoaSynth_mac_universal.zip \
+            --repo "$GITHUB_REPOSITORY" --title "Xoxicoa Synth $TAG" --notes-file notes.md

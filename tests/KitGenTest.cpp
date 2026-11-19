@@ -107,14 +107,20 @@ float spectralDiffOne (std::vector<float> A, std::vector<float> B, float* worstF
 float spectralDiff (const juce::AudioBuffer<float>& a, const juce::AudioBuffer<float>& b)
 {
     float wm = 0, ws = 0;
-    const float m = spectralDiffOne (bands (a), bands (b), &wm);
+    // renders stop after 0.25 s of silence, so two renders can differ by a few blocks: pad the shorter one with
+    // silence BEFORE anything is appended, so the side channel's reference cell below stays aligned (v1.2 fix:
+    // a misaligned reference cell used to read as a 70 dB side change, i.e. a fake 35 dB score)
+    auto MA = bands (a), MB = bands (b), SA = bands (a, true), SB = bands (b, true);
+    const size_t n = juce::jmax (MA.size(), MB.size());
+    for (auto* v : { &MA, &MB, &SA, &SB }) v->resize (n, -120.0f);
+    const float m = spectralDiffOne (MA, MB, &wm);
     // side channel only matters relative to the mid level: floor it 70 dB under the loudest mid cell
-    auto SA = bands (a, true), SB = bands (b, true), MA = bands (a);
     float mx = -200; for (auto v : MA) mx = juce::jmax (mx, v);
     for (auto& v : SA) v = juce::jmax (v, mx - 70.0f);
     for (auto& v : SB) v = juce::jmax (v, mx - 70.0f);
     SA.push_back (mx); SB.push_back (mx);   // same reference level
     const float sd = spectralDiffOne (SA, SB, &ws);
+    if (std::getenv ("XS_DEBUG")) std::printf ("   len %d vs %d: mean %.2f worst %.2f side %.2f sideWorst %.2f\n", a.getNumSamples(), b.getNumSamples(), m, wm, sd, ws);
     return juce::jmax (m, wm / 3.0f, sd * 0.5f, ws / 6.0f);
 }
 
@@ -274,6 +280,8 @@ int runKnobs (const juce::File& report)
         {
             const juce::String id (d.id);
             if (! d.affectsSound || midiOnly.contains (id) || id.endsWith ("_on")) continue;
+            if (auto* only = std::getenv ("XS_ONLY"))
+                if (! juce::StringArray::fromTokens (only, ",", "").contains (id)) continue;
             ++total;
             const float dd = spectralDiff (ref, rend (id, false, true));
             float dm = dd;

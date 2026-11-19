@@ -68,8 +68,6 @@ public:
         initS (sDistMix, 0.0f); initS (sChoMix, 0.0f); initS (sDlyMix, 0.0f); initS (sRevMix, 0.0f);
         initS (sDistDrive, *pDDrive); initS (sDlyTime, 0.25f, 0.15);
         initS (sLowKeep, *pLowKeep); initS (sWidth, *pWidth, 0.05);
-        for (auto& ch : keepD) for (auto& f : ch) f.reset();
-        for (auto& ch : keepW) for (auto& f : ch) f.reset();
 
         juce::dsp::ProcessSpec spec { sampleRate, (juce::uint32) maxBlock, 2 };
         oversampler = std::make_unique<juce::dsp::Oversampling<float>> (2, 1, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true, false);
@@ -86,6 +84,7 @@ public:
         dlyW = 0;
         dlyLpL = dlyLpR = 0.0f;
         dryBuf.setSize (2, maxBlock);
+        subBuf.setSize (1, maxBlock);
         wetBuf.setSize (2, maxBlock);
         limGain = 1.0f;
         limLook = juce::jmax (8, (int) (sampleRate * 0.0015));
@@ -191,6 +190,9 @@ public:
         juce::FloatVectorOperations::clear (L, num);
         if (R) juce::FloatVectorOperations::clear (R, num);
         float tmpR[VoiceCtrl::kMax];
+        if (subBuf.getNumSamples() < num) subBuf.setSize (1, num, false, false, true);
+        auto* S = subBuf.getWritePointer (0);
+        juce::FloatVectorOperations::clear (S, num);
         for (int pos = 0; pos < num; pos += VoiceCtrl::kMax)
         {
             const int n = juce::jmin (VoiceCtrl::kMax, num - pos);
@@ -200,12 +202,13 @@ public:
             for (auto& v : voices)
                 if (v.isActive())
                 {
-                    if (! R) { juce::FloatVectorOperations::clear (tmpR, n); v.render (ctrl, L + pos, tmpR); }
-                    else v.render (ctrl, L + pos, R + pos);
+                    if (! R) { juce::FloatVectorOperations::clear (tmpR, n); v.render (ctrl, L + pos, tmpR, S + pos); }
+                    else v.render (ctrl, L + pos, R + pos, S + pos);
                 }
         }
         // voice headroom
         out.applyGain (start, num, 0.32f * juce::Decibels::decibelsToGain ((float) *pBoost));
+        juce::FloatVectorOperations::multiply (S, 0.32f * juce::Decibels::decibelsToGain ((float) *pBoost), num);
         if (R) processFx (L, R, num);
     }
 
@@ -230,7 +233,7 @@ private:
     std::atomic<float> *pBoost = nullptr;
     std::atomic<float> *pPunch = nullptr, *pClick = nullptr, *pLowKeep = nullptr, *pWidth = nullptr, *pLFade = nullptr;
     juce::SmoothedValue<float> sLowKeep, sWidth;
-    SVF keepD[2][2], keepW[2][2];   // Low Keep crossover (24 dB/oct LP at 120 Hz) on the dry and the distorted signal
+    juce::AudioBuffer<float> subBuf;   // Low Keep: clean sine sub from the voices, mixed in after the FX
     std::atomic<float> *pSeqOn, *pSeqPat, *pSeqRate, *pSeqVary, *pSeqSwing;
     bool seqActive = false; int seqNote = 60; float seqVel = 1.0f; double seqPos = 0.0; int64_t seqNext = 0;
     juce::Array<int> heldNotes;
@@ -413,24 +416,12 @@ private:
             oversampler->processSamplesDown (block);
             const float toneHz = 800.0f * std::pow (25.0f, (float) *pDTone);
             const float a = 1.0f - std::exp (-juce::MathConstants<float>::twoPi * toneHz / sr);
-            const float kg = std::tan (juce::MathConstants<float>::pi * 120.0f / sr);
-            sLowKeep.setTargetValue (*pLowKeep);
             for (int i = 0; i < num; ++i)
             {
                 toneL += a * (L[i] - toneL); toneR += a * (R[i] - toneR);
                 // DC blocker
-                float yl = toneL - dcxL + 0.9995f * dcL; dcxL = toneL; dcL = yl;
-                float yr = toneR - dcxR + 0.9995f * dcR; dcxR = toneR; dcR = yr;
-                // Low Keep: swap the distorted low band (< 120 Hz) for the clean, heavier one, so drive adds grit without eating the sub
-                const float keep = sLowKeep.getNextValue();
-                {   // filters always run while the distortion is on, so turning Low Keep up never jumps
-                    const float dl = keepD[0][1].process (keepD[0][0].process (dryBuf.getSample (0, i), kg, 1.4142f, 0), kg, 1.4142f, 0);
-                    const float dr = keepD[1][1].process (keepD[1][0].process (dryBuf.getSample (1, i), kg, 1.4142f, 0), kg, 1.4142f, 0);
-                    const float wl = keepW[0][1].process (keepW[0][0].process (yl, kg, 1.4142f, 0), kg, 1.4142f, 0);
-                    const float wr = keepW[1][1].process (keepW[1][0].process (yr, kg, 1.4142f, 0), kg, 1.4142f, 0);
-                    // 0 = the distortion's own low end, 1 = a clean sub at +2.6 dB under the distorted top
-                    yl += keep * (1.35f * dl - wl); yr += keep * (1.35f * dr - wr);
-                }
+                const float yl = toneL - dcxL + 0.9995f * dcL; dcxL = toneL; dcL = yl;
+                const float yr = toneR - dcxR + 0.9995f * dcR; dcxR = toneR; dcR = yr;
                 const float m = sDistMix.getNextValue();
                 L[i] = dryBuf.getSample (0, i) + m * (yl - dryBuf.getSample (0, i));
                 R[i] = dryBuf.getSample (1, i) + m * (yr - dryBuf.getSample (1, i));
@@ -530,6 +521,21 @@ private:
                 const float dry = 1.0f - 0.5f * m;
                 L[i] = L[i] * dry + wetBuf.getSample (0, i) * m * 0.9f;
                 R[i] = R[i] * dry + wetBuf.getSample (1, i) * m * 0.9f;
+            }
+        }
+        // ---- Low Keep = clean sub weight: a pure sine at each voice's fundamental (glides, pitch env and punch included)
+        // goes under the processed signal, which is turned down as the sub comes up so the sum keeps its headroom:
+        // 0 = off, 1 = sub at +8 dB over the oscillator with the distorted / FX signal 16 dB down. The generator's
+        // loudness match and the look-ahead limiter (-0.5 dBFS ceiling) keep the extra weight from ever clipping.
+        sLowKeep.setTargetValue (*pLowKeep);
+        if (sLowKeep.isSmoothing() || sLowKeep.getTargetValue() > 0.0005f)
+        {
+            const auto* S = subBuf.getReadPointer (0);
+            for (int i = 0; i < num; ++i)
+            {
+                const float k = sLowKeep.getNextValue();
+                const float duck = 1.0f - 0.85f * k, sub = 2.6f * k * S[i];
+                L[i] = L[i] * duck + sub; R[i] = R[i] * duck + sub;
             }
         }
         // ---- stereo width (mid/side): 0 = mono, 1 = as is, 2 = twice the side signal

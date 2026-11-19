@@ -169,6 +169,7 @@ public:
             penv = 1.0f;
             punchP = punchA = 1.0f;
             clickPos = 0; clickPh = 0.0f;
+            if (fresh) keepPh = 0.0f;   // only from silence: a retrigger keeps the phase, so the sub never clicks
             fadePos = 0;
         }
     }
@@ -190,7 +191,7 @@ public:
         noiseEnv.set (0.0f, juce::jmax (1.0f, c.noiseDecay), 0.0f, juce::jmin (c.aEnv[3], c.noiseDecay + 4.0f), sr);
     }
 
-    void render (const VoiceCtrl& c, float* outL, float* outR) noexcept
+    void render (const VoiceCtrl& c, float* outL, float* outR, float* subOut = nullptr) noexcept
     {
         const int n = c.n;
         const auto& bank = WavetableBank::get();
@@ -398,6 +399,11 @@ public:
                 }
                 if (++clickPos > (int) (0.15f * sr)) clickPos = -1;
             }
+            if (subOut != nullptr)
+            {   // clean sine at the fundamental for Low Keep (follows glide, pitch env, punch, bend, vibrato)
+                subOut[i] += std::sin (keepPh * juce::MathConstants<float>::twoPi) * amp / boost[i];   // body weight: the punch boost stays on the top
+                keepPh += freq[i] * invSr; keepPh -= std::floor (keepPh);
+            }
             outL[i] += l * amp * pl + nz * nAmp + ck;
             outR[i] += r * amp * pr + nz * nAmp + ck;
         }
@@ -409,6 +415,7 @@ private:
     float sr = 48000.0f;
     float pitch = 60.0f, targetPitch = 60.0f, vel = 1.0f, penv = 0.0f, punchP = 0.0f, punchA = 0.0f, clickPh = 0.0f;
     int clickPos = -1, fadePos = 0;
+    float keepPh = 0.0f;
     float phA[kMaxUni] {}, phB[kMaxUni] {}, phSub = 0.0f, noiseLp = 0.0f;
     SVF filt[4], nFilt[2], fmt[2][3];
     Envelope ampEnv, modEnv, noiseEnv;

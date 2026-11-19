@@ -67,7 +67,7 @@ inline Patch categoryBase (int cat)
             { "penv_amt", 0 }, { "penv_decay", 60 },
             { "punch", 0.5f }, { "click", 0.15f },
             { "voice_mode", 2 }, { "glide", 110 }, { "vel_sens", 0.15f },
-            { "dist_on", 1 }, { "dist_type", 4 }, { "dist_drive", 0.62f }, { "dist_tone", 0.6f }, { "dist_mix", 1.0f }, { "low_keep", 0.7f },
+            { "dist_on", 1 }, { "dist_type", 4 }, { "dist_drive", 0.62f }, { "dist_tone", 0.6f }, { "dist_mix", 1.0f }, { "low_keep", 0.25f },
             { "st_width", 0.0f }, { "master_vol", -3 } });
         case 3: return merge (initPatch(), {   // Dark Pad
             { "a_wave", 2.3f }, { "a_uni", 7 }, { "a_detune", 0.45f }, { "a_width", 1.0f }, { "a_level", 0.7f },
@@ -146,17 +146,17 @@ inline std::vector<Preset> buildFactoryPresets()
     add (2, "Plugg Low", { { "dist_drive", 0.2f }, { "dist_mix", 0.5f }, { "flt_cutoff", 1600 }, { "penv_amt", 4 }, { "e1_d", 2200 }, { "glide", 140 } });
 
     // ---------------- v1.2 808 types (each loads its own generator type)
-    add (st808Clean, "Pure Sine Sub", { { "dist_drive", 0.1f }, { "dist_mix", 0.5f }, { "punch", 0.3f }, { "click", 0.0f }, { "low_keep", 0.9f }, { "dist_tone", 0.45f } });
+    add (st808Clean, "Pure Sine Sub", { { "dist_drive", 0.1f }, { "dist_mix", 0.5f }, { "punch", 0.3f }, { "click", 0.0f }, { "low_keep", 0.5f }, { "dist_tone", 0.45f } });
     add (st808Clean, "Deep Sine Glide", { { "dist_drive", 0.16f }, { "dist_mix", 0.6f }, { "punch", 0.35f }, { "click", 0.05f }, { "glide", 160 }, { "e1_d", 3000 }, { "e1_s", 0.7f } });
-    add (st808Rage, "Distorted Rage", { { "dist_type", 5 }, { "dist_drive", 0.62f }, { "dist_tone", 0.78f }, { "low_keep", 0.8f }, { "punch", 0.6f }, { "click", 0.3f }, { "glide", 85 } });
-    add (st808Rage, "Spaz Mosh 808", { { "dist_type", 5 }, { "dist_drive", 0.78f }, { "dist_tone", 0.85f }, { "low_keep", 0.75f }, { "punch", 0.7f }, { "click", 0.4f },
+    add (st808Rage, "Distorted Rage", { { "dist_type", 5 }, { "dist_drive", 0.62f }, { "dist_tone", 0.78f }, { "low_keep", 0.2f }, { "punch", 0.6f }, { "click", 0.3f }, { "glide", 85 } });
+    add (st808Rage, "Spaz Mosh 808", { { "dist_type", 5 }, { "dist_drive", 0.78f }, { "dist_tone", 0.85f }, { "low_keep", 0.15f }, { "punch", 0.7f }, { "click", 0.4f },
                                         { "b_on", 1 }, { "b_wave", 3 }, { "b_oct", 1 }, { "b_level", 0.12f }, { "glide", 70 } });
     add (st808Plugg, "Punchy Pluggnb", { { "dist_drive", 0.6f }, { "dist_tone", 0.5f }, { "punch", 0.85f }, { "click", 0.45f }, { "e1_d", 1000 }, { "e1_s", 0.3f }, { "glide", 80 } });
     add (st808Plugg, "Plugg Knock", { { "dist_type", 0 }, { "dist_drive", 0.42f }, { "punch", 1.0f }, { "click", 0.6f }, { "e1_d", 700 }, { "e1_s", 0.2f }, { "glide", 70 } });
     add (st808Spinz, "Spinz Glide", { { "glide", 320 }, { "dist_type", 1 }, { "dist_drive", 0.58f }, { "dist_tone", 0.65f }, { "punch", 0.4f }, { "e1_d", 3200 }, { "e1_s", 0.85f }, { "bend", 12 } });
     add (st808Spinz, "Slide Sauce", { { "glide", 450 }, { "dist_drive", 0.64f }, { "punch", 0.45f }, { "click", 0.2f }, { "e1_d", 3600 }, { "e1_s", 0.8f } });
-    add (st808Boom, "Long Boom", { { "e1_d", 5200 }, { "e1_s", 0.9f }, { "e1_r", 900 }, { "punch", 0.55f }, { "click", 0.2f }, { "dist_drive", 0.56f }, { "low_keep", 0.9f } });
-    add (st808Boom, "Stadium Boom", { { "e1_d", 6000 }, { "e1_s", 0.85f }, { "e1_r", 1400 }, { "punch", 0.65f }, { "click", 0.3f }, { "dist_type", 5 }, { "dist_drive", 0.45f }, { "low_keep", 0.85f } });
+    add (st808Boom, "Long Boom", { { "e1_d", 5200 }, { "e1_s", 0.9f }, { "e1_r", 900 }, { "punch", 0.55f }, { "click", 0.2f }, { "dist_drive", 0.56f }, { "low_keep", 0.35f } });
+    add (st808Boom, "Stadium Boom", { { "e1_d", 6000 }, { "e1_s", 0.85f }, { "e1_r", 1400 }, { "punch", 0.65f }, { "click", 0.3f }, { "dist_type", 5 }, { "dist_drive", 0.45f }, { "low_keep", 0.3f } });
 
     // ---------------- v1.2 light / soft synths
     add (stSoftBell, "Soft Bell", { { "a_oct", 1 }, { "b_on", 1 }, { "b_wave", 7 }, { "b_oct", 2 }, { "b_level", 0.22f }, { "e1_d", 1100 }, { "e1_r", 1000 } });
@@ -408,19 +408,19 @@ private:
         p["dist_drive"] = range (0.56f, 0.72f, 0.3f, 0.85f);
         p["dist_tone"] = range (0.55f, 0.8f, 0.4f, 0.95f);
         p["dist_mix"] = 1.0f;
-        p["low_keep"] = range (0.6f, 0.85f, 0.4f, 1.0f);
+        p["low_keep"] = range (0.18f, 0.32f, 0.05f, 0.6f);
         p["b_on"] = 0;
         p["sub_level"] = 0.0f;
         switch (style)
         {
             case 1: // clean sub: a pure sine with a soft knock, only a hint of 2nd harmonic so phones still hear the note
                 p["dist_type"] = 4; p["dist_drive"] = range (0.06f, 0.16f, 0.0f, 0.25f); p["dist_mix"] = range (0.4f, 0.65f, 0.2f, 0.8f);
-                p["punch"] = range (0.2f, 0.4f, 0.1f, 0.6f); p["click"] = range (0.0f, 0.08f, 0.0f, 0.2f); p["low_keep"] = 0.9f;
+                p["punch"] = range (0.2f, 0.4f, 0.1f, 0.6f); p["click"] = range (0.0f, 0.08f, 0.0f, 0.2f); p["low_keep"] = range (0.4f, 0.6f, 0.25f, 0.8f);
                 p["dist_tone"] = range (0.35f, 0.55f, 0.25f, 0.7f);
                 break;
             case 2: // distorted rage: tube -> hard clip, bright tone, big knock, clean sub kept underneath
                 p["dist_type"] = pick ({ 5, 5, 1 }, { 1, 3, 5 }); p["dist_drive"] = range (0.55f, 0.75f, 0.4f, 0.9f);
-                p["dist_tone"] = range (0.7f, 0.9f, 0.5f, 1.0f); p["low_keep"] = range (0.7f, 0.85f, 0.5f, 1.0f);
+                p["dist_tone"] = range (0.7f, 0.9f, 0.5f, 1.0f); p["low_keep"] = range (0.12f, 0.25f, 0.0f, 0.5f);
                 p["punch"] = range (0.5f, 0.75f, 0.35f, 1.0f); p["click"] = range (0.2f, 0.45f, 0.1f, 0.7f);
                 p["glide"] = range (60.0f, 110.0f, 40.0f, 180.0f);
                 if (chance (0.4f, 0.6f)) { p["b_on"] = 1; p["b_wave"] = range (2.5f, 3.5f, 1.5f, 5.0f); p["b_oct"] = 1; p["b_level"] = range (0.06f, 0.14f, 0.04f, 0.25f); }
@@ -439,7 +439,7 @@ private:
             case 5: // long boom: very long decay / sustain and release, deep and wide-open
                 p["e1_d"] = range (4500.0f, 6500.0f, 3500.0f, 8000.0f, true); p["e1_s"] = range (0.8f, 0.92f, 0.6f, 1.0f);
                 p["e1_r"] = range (700.0f, 1400.0f, 400.0f, 2500.0f, true);
-                p["dist_drive"] = range (0.5f, 0.62f, 0.3f, 0.72f); p["low_keep"] = range (0.8f, 0.95f, 0.6f, 1.0f);
+                p["dist_drive"] = range (0.5f, 0.62f, 0.3f, 0.72f); p["low_keep"] = range (0.28f, 0.42f, 0.15f, 0.65f);
                 break;
             default: break;
         }
